@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import './App.css';
+import { OverlayTrigger, Popover } from 'react-bootstrap';
 
 function App() {
   const [youtubeUrl, setYoutubeUrl] = useState('');
@@ -16,7 +18,7 @@ function App() {
     axios
       .get(`https://intraytdlp.servicecloudlmex.co/api/v1/yt/videos-uploaded/${videoId}`, { responseType: 'blob' })
       .then((response) => {
-        const downloadUrl1 = window.URL.createObjectURL(new Blob([response.data],{
+        const downloadUrl1 = window.URL.createObjectURL(new Blob([response.data], {
           type: 'application/octet-stream',
         }));
         console.log("este es el objecto ", downloadUrl1)
@@ -35,23 +37,30 @@ function App() {
         console.error('Error:', error);
       });
   };
-
+  const popover = (
+    <Popover id="popover-basic">
+      <Popover.Body>Please enter a YouTube URL.</Popover.Body>
+    </Popover>
+  );
 
   const handleDownload = () => {
-    setLoading(true);
+    if (youtubeUrl) {
+      setLoading(true);
+      axios
+        .post('https://intraytdlp.servicecloudlmex.co/api/v1/yt/videos-uploaded/', { url: youtubeUrl })
+        .then((response) => {
+          console.log("url del resnpose ", response.data.id, downloadUrl);
+          setDownloadUrl(response.data);
+          downloadFile(response.data.id)
+        })
+        .catch((error) => {
+          console.error('Error:', error);
+          setLoading(false);
+          setDownloadUrl('');
+        });
+    } else {
 
-    axios
-      .post('https://intraytdlp.servicecloudlmex.co/api/v1/yt/videos-uploaded/', { url: youtubeUrl })
-      .then((response) => {
-        console.log("url del resnpose ", response.data.id, downloadUrl);
-        setDownloadUrl(response.data);
-        downloadFile(response.data.id)
-      })
-      .catch((error) => {
-        console.error('Error:', error);
-        setLoading(false);
-        setDownloadUrl('');
-      });
+    }
   };
 
   const handleClean = () => {
@@ -62,11 +71,19 @@ function App() {
   };
 
   return (
-    <div className="App">
-      <h1>YouTube Video Downloader</h1>
-      <input type="text" value={youtubeUrl} onChange={handleInputChange} />
-      <button onClick={handleDownload}>Download</button>
-      <button onClick={handleClean}>Clean</button>
+    <div className="container">
+      <h1 className="mt-4 mb-4">YouTube Video Downloader</h1>
+      <div className="input-group mb-4">
+        <input type="text" value={youtubeUrl} onChange={handleInputChange} />
+        <OverlayTrigger trigger="click" placement="right" overlay={popover} rootClose>
+        <button className="btn btn-primary" type="button" onClick={handleDownload}>
+          Download
+        </button>
+      </OverlayTrigger>
+        <button className="btn btn-secondary" type="button" onClick={handleClean}>
+          Clean
+        </button>
+      </div>
       {loading && <div>Loading...</div>}
       {downloadUrl && url && (
         <div>
