@@ -73,8 +73,8 @@ function App() {
   return (
     <div className="container">
       <h1 className="mt-4 mb-4">YouTube Video Downloader</h1>
-      <div className="input-group mb-4">
-        <input type="text" value={youtubeUrl} onChange={handleInputChange} />
+      <div className="input-group mb-3">
+        <input type="text" value={youtubeUrl} onChange={handleInputChange}  class="form-control" placeholder="Youtube Url" aria-label="Youtube Url" aria-describedby="basic-addon2" />
         <OverlayTrigger trigger="click" placement="right" overlay={popover} rootClose>
         <button className="btn btn-primary" type="button" onClick={handleDownload}>
           Download
