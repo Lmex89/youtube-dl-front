@@ -7,7 +7,6 @@ FROM node:16-buster
 RUN apt-get update
 RUN apt-get upgrade -y
 RUN apt-get install -y autoconf automake apt-utils
-
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 COPY package.json /usr/src/app/
@@ -17,8 +16,7 @@ EXPOSE 3000
 ENV NODE_ENV production
 ENV PORT 3000
 ENV PUBLIC_PATH "/"
-
-
+RUN npm install
 # Build the React app
 RUN npm run build
 
