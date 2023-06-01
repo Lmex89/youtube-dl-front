@@ -1,6 +1,6 @@
 
 # Base image
-FROM node:16-buster
+FROM node:18
 
 # Set working directory
 
@@ -9,7 +9,7 @@ RUN apt-get upgrade -y
 RUN apt-get install -y autoconf automake apt-utils
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
-RUN npm install -g npm@9.6.7
+
 COPY package.json /usr/src/app/
 COPY . /usr/src/app
 
