@@ -3,6 +3,9 @@ import axios from 'axios';
 import './App.css';
 import { OverlayTrigger, Popover } from 'react-bootstrap';
 
+import Backdrop from '@mui/material/Backdrop';
+import CircularProgress from '@mui/material/CircularProgress';
+
 function App() {
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -74,17 +77,24 @@ function App() {
     <div className="container">
       <h1 className="mt-4 mb-4">YouTube Video Downloader</h1>
       <div className="input-group mb-3">
-        <input type="text" value={youtubeUrl} onChange={handleInputChange}  class="form-control" placeholder="Youtube Url" aria-label="Youtube Url" aria-describedby="basic-addon2" />
+        <input type="text" value={youtubeUrl} onChange={handleInputChange} class="form-control" placeholder="Youtube Url" aria-label="Youtube Url" aria-describedby="basic-addon2" />
         <OverlayTrigger trigger="click" placement="right" overlay={popover} rootClose>
-        <button className="btn btn-primary" type="button" onClick={handleDownload}>
-          Download
-        </button>
-      </OverlayTrigger>
+          <button className="btn btn-primary" type="button" onClick={handleDownload}>
+            Download
+          </button>
+        </OverlayTrigger>
         <button className="btn btn-secondary" type="button" onClick={handleClean}>
           Clean
         </button>
       </div>
-      {loading && <div>Loading...</div>}
+      {loading &&
+        <Backdrop
+          sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+          open
+        >
+          <CircularProgress color="inherit" />
+        </Backdrop>
+      }
       {downloadUrl && url && (
         <div>
           <video controls>
