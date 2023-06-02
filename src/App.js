@@ -1,53 +1,62 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import './App.css';
-import { OverlayTrigger, Popover } from 'react-bootstrap';
+import React, { useState } from "react";
+import axios from "axios";
+import "./App.css";
+import { OverlayTrigger, Popover } from "react-bootstrap";
 
-import Backdrop from '@mui/material/Backdrop';
-import CircularProgress from '@mui/material/CircularProgress';
-import Button from '@mui/material/Button';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
+import Backdrop from "@mui/material/Backdrop";
+import CircularProgress from "@mui/material/CircularProgress";
+import Button from "@mui/material/Button";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
+import { Stack, useMediaQuery, useTheme } from "@mui/material";
 
 const darkTheme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: "dark",
   },
 });
 
 function App() {
-  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState(null);
-  const [url, setUrl] = useState(null)
+  const [url, setUrl] = useState(null);
+
+  const theme = useTheme();
+  const mobile = useMediaQuery(theme.breakpoints.up("md"));
 
   const handleInputChange = (event) => {
     setYoutubeUrl(event.target.value);
   };
 
   const downloadFile = (videoId) => {
-    console.log(videoId)
+    console.log(videoId);
     axios
-      .get(`https://intraytdlp.servicecloudlmex.co/api/v1/yt/videos-uploaded/${videoId}`, { responseType: 'blob' })
+      .get(
+        `https://intraytdlp.servicecloudlmex.co/api/v1/yt/videos-uploaded/${videoId}`,
+        { responseType: "blob" }
+      )
       .then((response) => {
-        const downloadUrl1 = window.URL.createObjectURL(new Blob([response.data], {
-          type: 'application/octet-stream',
-        }));
-        console.log("este es el objecto ", downloadUrl1)
-        const link = document.createElement('a');
+        const downloadUrl1 = window.URL.createObjectURL(
+          new Blob([response.data], {
+            type: "application/octet-stream",
+          })
+        );
+        console.log("este es el objecto ", downloadUrl1);
+        const link = document.createElement("a");
         link.href = downloadUrl1;
-        console.log("link,", link.href)
-        link.setAttribute('download', `video_${videoId}.mp4`);
-        setUrl(link)
-        setLoading(false)
+        console.log("link,", link.href);
+        link.setAttribute("download", `video_${videoId}.mp4`);
+        setUrl(link);
+        setLoading(false);
         document.body.appendChild(link);
         link.click();
-        link.remove()
+        link.remove();
         //document.body.removeChild(link);
       })
       .catch((error) => {
-        console.error('Error:', error);
+        console.error("Error:", error);
       });
   };
   const popover = (
@@ -60,63 +69,99 @@ function App() {
     if (youtubeUrl) {
       setLoading(true);
       axios
-        .post('https://intraytdlp.servicecloudlmex.co/api/v1/yt/videos-uploaded/', { url: youtubeUrl })
+        .post(
+          "https://intraytdlp.servicecloudlmex.co/api/v1/yt/videos-uploaded/",
+          { url: youtubeUrl }
+        )
         .then((response) => {
           console.log("url del resnpose ", response.data.id, downloadUrl);
           setDownloadUrl(response.data);
-          downloadFile(response.data.id)
+          downloadFile(response.data.id);
         })
         .catch((error) => {
-          console.error('Error:', error);
+          console.error("Error:", error);
           setLoading(false);
-          setDownloadUrl('');
+          setDownloadUrl("");
         });
     } else {
-
     }
   };
 
   const handleClean = () => {
-    setYoutubeUrl('');
-    setDownloadUrl('');
-    setUrl('');
-    setLoading(false)
+    setYoutubeUrl("");
+    setDownloadUrl("");
+    setUrl("");
+    setLoading(false);
   };
 
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
-      <div className="container">
+      <div className="container-sm">
         <h1 className="mt-4 mb-4">YouTube Video Downloader</h1>
-        <div className="input-group mb-3">
-          <input type="text" value={youtubeUrl} onChange={handleInputChange} class="form-control" placeholder="Youtube Url" aria-label="Youtube Url" aria-describedby="basic-addon2" />
-          <OverlayTrigger trigger="click" placement="right" overlay={popover} rootClose>
-            {/* <button className="btn btn-primary" type="button" onClick={handleDownload}>
+        <Stack marginBottom={2}>
+          <Stack spacing={2} direction={mobile ? "row" : "column"}>
+            <input
+              type="text"
+              value={youtubeUrl}
+              onChange={handleInputChange}
+              className="form-control"
+              placeholder="Youtube Url"
+              aria-label="Youtube Url"
+              aria-describedby="basic-addon2"
+            />
+            <Stack
+              spacing={mobile ? 1 : 2}
+              direction={mobile ? "row" : "column"}
+            >
+              <OverlayTrigger
+                trigger="click"
+                placement="right"
+                overlay={popover}
+                rootClose
+              >
+                {/* <button className="btn btn-primary" type="button" onClick={handleDownload}>
             Download
           </button> */}
-            <Button variant="contained" onClick={handleDownload} color="success" >Download</Button>
-          </OverlayTrigger>
-          {/* <button className="btn btn-secondary" type="button" onClick={handleClean}>
+                <Button
+                  variant="contained"
+                  onClick={handleDownload}
+                  color="success"
+                >
+                  Download
+                </Button>
+              </OverlayTrigger>
+              {/* <button className="btn btn-secondary" type="button" onClick={handleClean}>
           Clean
         </button> */}
-          <Button variant="outlined" disableElevation onClick={handleClean} color="secondary" startIcon={<DeleteIcon />} >
-            clean
-          </Button>
-        </div>
-        {loading &&
+              <Button
+                variant="outlined"
+                disableElevation
+                onClick={handleClean}
+                color="secondary"
+                startIcon={<DeleteIcon />}
+              >
+                clean
+              </Button>
+            </Stack>
+          </Stack>
+        </Stack>
+        {loading && (
           <Backdrop
-            sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+            sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
             open
           >
             <CircularProgress color="inherit" />
           </Backdrop>
-        }
+        )}
         {downloadUrl && url && (
           <div>
-            <video controls>
+            <video controls className="w-100">
               <source src={url} type="video/mp4" />
             </video>
-            <a href={url} download>Click here to download the video</a>
+            <a href={url} download>
+              Click here to download the video
+            </a>
           </div>
         )}
       </div>
