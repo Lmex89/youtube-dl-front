@@ -1,70 +1,65 @@
-# Getting Started with Create React App
+# youtube-dl-front
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Frontend for downloading YouTube videos. Validates YouTube URLs, sends them to a backend API, and downloads the resulting video file.
 
-## Available Scripts
+Built with **React 18** (Create React App), **MUI v5**, **react-bootstrap**, and **Axios**. No TypeScript, no routing.
 
-In the project directory, you can run:
+## Quick Start
 
-### `yarn start`
+```bash
+yarn install
+yarn start
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Opens at [http://localhost:3000](http://localhost:3000).
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Scripts
 
-### `yarn test`
+| Command       | Description                       |
+|---------------|-----------------------------------|
+| `yarn start`  | Dev server with hot reload        |
+| `yarn build`  | Production build to `build/`      |
+| `yarn test`   | Run tests (Jest watch mode)       |
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Configuration
 
-### `yarn build`
+Set the backend API URL via `REACT_APP_API_URL` in `.env` (must use `REACT_APP_` prefix — CRA requirement):
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```
+REACT_APP_API_URL=https://your-api.example.com
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Defaults to `http://localhost:8000`.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Docker
 
-### `yarn eject`
+```bash
+docker compose up -d
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Serves the production build on [http://localhost:3012](http://localhost:3012).
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## API
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+The app communicates with a backend API at `{API_URL}/api/v1/yt/videos-uploaded/`:
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+1. **POST** `/api/v1/yt/videos-uploaded/` — Sends a cleaned YouTube URL, receives video metadata with an `id`.
+2. **GET** `/api/v1/yt/videos-uploaded/{id}` — Downloads the video file as a blob.
 
-## Learn More
+## Architecture
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+| Layer        | Technology                            |
+|-------------|---------------------------------------|
+| Framework   | React 18 (Create React App)           |
+| UI          | MUI v5 (dark theme) + react-bootstrap |
+| HTTP        | Axios                                 |
+| Entry point | `src/index.js` → `src/App.js`         |
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- **Legacy**: `src/App_old.jsx` is stale — do not edit.
+- **Env vars**: `REACT_APP_API_URL` in `.env` with fallback to `http://localhost:8000`.
 
-### Code Splitting
+## Notes
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `yarn build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- The default `App.test.js` checks for "learn react" text that no longer exists — the test will fail.
+- No custom ESLint/Prettier config beyond CRA defaults. No CI pipeline.
+- Docker build uses `serve` to serve the static `build/` folder.

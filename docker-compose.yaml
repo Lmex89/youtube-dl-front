@@ -1,9 +1,23 @@
-version: '3'
 services:
-  react-app:
+  # URL Shortener Frontend Application
+  web-youtube:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: web-youtube
     ports:
-      - 3010:3000
+      - "3012:3000"
+    environment:
+      # Production environment variables
+      - NODE_ENV=production
     restart: unless-stopped
+    networks:
+      - web-youtube-network
+
+networks:
+  web-youtube-network:
+    driver: bridge
+
+# Optional: Add volumes for logs or persistent data
+volumes:
+  app-logs-youtube:
