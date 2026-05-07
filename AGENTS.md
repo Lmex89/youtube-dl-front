@@ -20,4 +20,4 @@
 
 - The default `App.test.js` checks for "learn react" text that no longer exists in the current `App.js` — test will fail. Update or remove if changing tests.
 - No custom ESLint/Prettier config beyond CRA defaults. No CI pipeline.
-- Docker build uses `serve` to serve the static `build/` folder.
+- Docker build uses `nginxinc/nginx-unprivileged:1.27-alpine` (see `docker/nginx/default.conf`). `REACT_APP_API_URL` is passed as a build arg — update your `.env` before building.

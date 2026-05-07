@@ -33,11 +33,14 @@ Defaults to `http://localhost:8000`.
 
 ## Docker
 
+Builds with a multi-stage Dockerfile using `node:22-alpine` for compilation and `nginxinc/nginx-unprivileged` for serving. Pass `REACT_APP_API_URL` as a build arg:
+
 ```bash
+docker compose build
 docker compose up -d
 ```
 
-Serves the production build on [http://localhost:3012](http://localhost:3012).
+Serves the production build on [http://localhost:3012](http://localhost:3012). A `/health` endpoint is available for container health checks.
 
 ## API
 
@@ -48,18 +51,20 @@ The app communicates with a backend API at `{API_URL}/api/v1/yt/videos-uploaded/
 
 ## Architecture
 
-| Layer        | Technology                            |
-|-------------|---------------------------------------|
-| Framework   | React 18 (Create React App)           |
-| UI          | MUI v5 (dark theme) + react-bootstrap |
-| HTTP        | Axios                                 |
-| Entry point | `src/index.js` → `src/App.js`         |
+| Layer          | Technology                                       |
+|---------------|--------------------------------------------------|
+| Framework     | React 18 (Create React App)                      |
+| UI            | MUI v5 (dark theme) + react-bootstrap            |
+| HTTP          | Axios                                            |
+| Docker build  | `node:22-alpine`, `yarn install --frozen-lockfile` |
+| Docker runtime | `nginxinc/nginx-unprivileged:1.27-alpine`        |
+| Nginx config  | `docker/nginx/default.conf`                      |
+| Entry point   | `src/index.js` → `src/App.js`                    |
 
 - **Legacy**: `src/App_old.jsx` is stale — do not edit.
-- **Env vars**: `REACT_APP_API_URL` in `.env` with fallback to `http://localhost:8000`.
+- **Env vars**: `REACT_APP_API_URL` in `.env` with fallback to `http://localhost:8000`. Passed as Docker build arg.
 
 ## Notes
 
 - The default `App.test.js` checks for "learn react" text that no longer exists — the test will fail.
 - No custom ESLint/Prettier config beyond CRA defaults. No CI pipeline.
-- Docker build uses `serve` to serve the static `build/` folder.
