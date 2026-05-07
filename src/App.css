@@ -1,43 +1,116 @@
+/* Dark theme styling based on sensors-temp UI */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 .App {
   text-align: center;
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #111c36, #0f172a 65%);
+  color: #e2e8f0;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 h1 {
-  margin-bottom: 2rem;
+  margin-bottom: 10px;
+  font-size: 1.5rem;
+  color: #38bdf8;
 }
 
-.input-container {
+.subtitle {
+  margin-bottom: 18px;
+  color: #94a3b8;
+  font-size: 0.92rem;
+}
+
+.panel {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid #334155;
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 16px;
+  backdrop-filter: blur(6px);
+}
+
+.input-group {
   display: flex;
-  justify-content: center;
-  margin-bottom: 2rem;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
-.input-field {
-  width: 400px;
-  padding: 0.5rem;
-  font-size: 16px;
+.form-control {
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #1e293b;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  padding: 6px 10px;
+  flex: 1;
+  min-width: 300px;
 }
 
-.button-container {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 2rem;
+.form-control::placeholder {
+  color: #64748b;
 }
 
-.button {
-  padding: 0.75rem 2rem;
-  font-size: 16px;
-  font-weight: bold;
-  background-color: #007bff;
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
+.form-control:focus {
+  outline: none;
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
 }
 
-.button:hover {
-  background-color: #0056b3;
+/* Button styling to match sensors-temp */
+.MuiButton-root {
+  border: 1px solid #334155 !important;
+  border-radius: 8px !important;
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+  font-size: 0.875rem !important;
+  padding: 7px 12px !important;
+  cursor: pointer !important;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.08s ease !important;
+  text-transform: none !important;
+}
+
+.MuiButton-root:hover {
+  background: #263449 !important;
+  border-color: #475569 !important;
+}
+
+.MuiButton-root:active {
+  transform: translateY(1px) !important;
+}
+
+/* Contained variant (Download button) - active state */
+.MuiButton-contained {
+  background: #0369a1 !important;
+  border-color: #38bdf8 !important;
+  color: #f8fafc !important;
+}
+
+.MuiButton-contained:hover {
+  background: #0284c7 !important;
+  border-color: #7dd3fc !important;
+}
+
+/* Outlined variant (Clean button) */
+.MuiButton-outlined {
+  background: transparent !important;
+  border-color: #334155 !important;
+}
+
+.MuiButton-outlined:hover {
+  background: #1e293b !important;
+  border-color: #475569 !important;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .video-container {
@@ -45,14 +118,20 @@ h1 {
   flex-direction: column;
   align-items: center;
   margin-bottom: 2rem;
+  margin-top: 20px;
 }
 
 .video-id {
   margin-bottom: 1rem;
+  color: #94a3b8;
+  font-size: 0.875rem;
 }
 
 .video-player {
-  width: 400px;
+  width: 100%;
+  max-width: 600px;
+  border-radius: 12px;
+  border: 1px solid #334155;
 }
 
 .download-link {
@@ -60,3 +139,96 @@ h1 {
   font-size: 16px;
 }
 
+.download-link a {
+  color: #38bdf8;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.download-link a:hover {
+  color: #7dd3fc;
+  text-decoration: underline;
+}
+
+/* Status and error styling */
+.status {
+  color: #cbd5e1;
+  font-size: 0.875rem;
+}
+
+.status strong {
+  color: #38bdf8;
+}
+
+.error {
+  color: #fca5a5;
+  font-size: 0.875rem;
+}
+
+/* Popover styling */
+.popover {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid #334155 !important;
+  border-radius: 8px !important;
+  color: #fca5a5 !important;
+}
+
+.popover-body {
+  color: #fca5a5 !important;
+}
+
+/* Backdrop styling */
+.MuiBackdrop-root {
+  background: rgba(15, 23, 42, 0.8) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* Circular progress */
+.MuiCircularProgress-root {
+  color: #38bdf8 !important;
+}
+
+/* Footer styling */
+.footer {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #334155;
+  text-align: center;
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.footer-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: color 0.15s ease, transform 0.08s ease;
+}
+
+.footer-link:hover {
+  color: #38bdf8;
+  transform: translateY(-1px);
+}
+
+.footer-link svg {
+  fill: currentColor;
+}
+
+.footer-separator {
+  color: #475569;
+  font-size: 0.875rem;
+}
+
+.footer-text {
+  color: #64748b;
+  font-size: 0.8rem;
+}
