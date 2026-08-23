@@ -1,5 +1,9 @@
 # youtube-dl-front
 
+## CodeGraph
+
+- **Mandatory**: Always use `codegraph` tools to query, explore, and understand the project codebase, symbols, and dependencies before making changes.
+
 ## Commands (use yarn, not npm)
 
 | Command | Action |

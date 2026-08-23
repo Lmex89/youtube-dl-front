@@ -15,26 +15,44 @@ const darkTheme = createTheme({
 });
 
 function App() {
-  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [url, setUrl] = useState(null);
   const [showPopover, setShowPopover] = useState(false);
 
   const handleInputChange = (event) => {
-    setYoutubeUrl(event.target.value);
+    setVideoUrl(event.target.value);
     setShowPopover(false);
   };
 
-  // --- Regex to validate and sanitize YouTube URL ---
-  const validateAndCleanYouTubeUrl = (inputUrl) => {
-    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=|embed\/|shorts\/)?([a-zA-Z0-9_-]{11})(.*)?$/;
-    const match = inputUrl.match(youtubeRegex);
-    if (!match) return null;
+  // --- Regex to validate and sanitize YouTube, Facebook, and TikTok URLs ---
+  const validateAndCleanUrl = (inputUrl) => {
+    if (!inputUrl || typeof inputUrl !== 'string') return null;
+    const trimmed = inputUrl.trim();
+    if (!trimmed) return null;
 
-    // Extract base URL + video ID
-    const videoId = match[5];
-    return `https://www.youtube.com/watch?v=${videoId}`;
+    // YouTube validation & cleaning
+    const youtubeRegex = /^(https?:\/\/)?((www|m|music)\.)?(youtube\.com\/(watch\?.*v=|embed\/|shorts\/|v\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i;
+    const ytMatch = trimmed.match(youtubeRegex);
+    if (ytMatch) {
+      const videoId = ytMatch[6];
+      return `https://www.youtube.com/watch?v=${videoId}`;
+    }
+
+    // Facebook validation
+    const fbRegex = /^(https?:\/\/)?(((www|m|web)\.)?(facebook\.com|fb\.com)\/(.+|watch|reel|share|videos)|(www\.)?fb\.watch\/.+)/i;
+    if (fbRegex.test(trimmed)) {
+      return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    }
+
+    // TikTok validation
+    const ttRegex = /^(https?:\/\/)?(((www|m)\.)?tiktok\.com\/(@[\w.-]+\/(video|photo)\/\d+|t\/[a-zA-Z0-9_-]+|[a-zA-Z0-9_/-]+)|(vt|vm)\.tiktok\.com\/[a-zA-Z0-9_-]+)/i;
+    if (ttRegex.test(trimmed)) {
+      return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    }
+
+    return null;
   };
 
   const downloadFile = (videoId) => {
@@ -63,12 +81,12 @@ function App() {
 
   const popover = (
     <Popover id="popover-basic">
-      <Popover.Body>Please enter a valid YouTube video URL.</Popover.Body>
+      <Popover.Body>Please enter a valid YouTube, Facebook, or TikTok video URL.</Popover.Body>
     </Popover>
   );
 
   const handleDownload = () => {
-    const cleanedUrl = validateAndCleanYouTubeUrl(youtubeUrl);
+    const cleanedUrl = validateAndCleanUrl(videoUrl);
 
     if (!cleanedUrl) {
       setShowPopover(true);
@@ -91,7 +109,7 @@ function App() {
   };
 
   const handleClean = () => {
-    setYoutubeUrl('');
+    setVideoUrl('');
     setDownloadUrl('');
     setUrl('');
     setLoading(false);
@@ -103,18 +121,18 @@ function App() {
       <CssBaseline />
       <div className="App">
         <div className="container">
-          <h1>YouTube Video Downloader</h1>
-          <div className="subtitle">Download your favorite YouTube videos by entering the URL below</div>
+          <h1>Video Downloader</h1>
+          <div className="subtitle">Download your favorite YouTube, Facebook, or TikTok videos by entering the URL below</div>
           
           <div className="panel">
             <div className="input-group">
               <input
                 type="text"
-                value={youtubeUrl}
+                value={videoUrl}
                 onChange={handleInputChange}
                 className="form-control"
-                placeholder="Enter YouTube URL..."
-                aria-label="YouTube URL"
+                placeholder="Enter YouTube, Facebook, or TikTok URL..."
+                aria-label="Video URL"
               />
               <OverlayTrigger
                 trigger={showPopover ? 'click' : []}
