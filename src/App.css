@@ -41,6 +41,8 @@ h1 {
   margin-bottom: 16px;
   backdrop-filter: blur(12px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .input-group {
@@ -50,15 +52,18 @@ h1 {
   align-items: stretch;
 }
 
-.form-control {
-  border: 1px solid #334155;
-  border-radius: 12px;
-  background: #1e293b;
-  color: #e2e8f0;
-  font-size: 1rem;
-  font-family: 'DM Sans', sans-serif;
-  padding: 14px 16px;
-  width: 100%;
+.form-control,
+input.form-control {
+  border: 1px solid #334155 !important;
+  border-radius: 12px !important;
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+  font-size: 1rem !important;
+  font-family: 'DM Sans', sans-serif !important;
+  padding: 14px 16px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -327,11 +332,13 @@ h1 {
     gap: 12px;
   }
 
-  .form-control {
-    flex: 1;
-    min-width: 300px;
-    font-size: 0.95rem;
-    padding: 10px 14px;
+  .form-control,
+  input.form-control {
+    flex: 1 !important;
+    min-width: 300px !important;
+    width: auto !important;
+    font-size: 0.95rem !important;
+    padding: 10px 14px !important;
   }
 
   .MuiButton-root {
