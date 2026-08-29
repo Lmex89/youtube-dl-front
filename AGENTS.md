@@ -19,7 +19,7 @@
 - **Stack**: React 18 (CRA), MUI v5, react-bootstrap, Axios. **No TypeScript, no routing.**
 - **Entry**: `src/index.js` → `src/App.js`
 - **Supported Platforms**: YouTube, Facebook, and TikTok URLs validated and sanitized via `validateAndCleanUrl` in `src/App.js`.
-- **UI & Theme**: Dark theme with radial gradients based on sensors-temp design, MUI LinearProgress, and GitHub footer links.
+- **UI & Theme**: Mobile-first dark theme with cinematic radial gradients, Google Fonts (Outfit for headings, DM Sans for body), glassmorphism panels, and GitHub footer links. Responsive breakpoints at 600px (tablet) and 1024px (desktop).
 - **Env**: `REACT_APP_API_URL` in `.env` (must use `REACT_APP_` prefix — CRA requirement). Falls back to `http://localhost:8000`.
 - **Legacy**: `src/App_old.jsx` is stale — do not edit.
 

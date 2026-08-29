@@ -37,8 +37,8 @@ A modern, responsive web interface for downloading YouTube videos. Built with **
 - **State Persistence**: Automatically resumes downloads on page refresh using localStorage
 - **Cancel Download**: Stop polling and clear state at any time during download
 - **Video Preview**: In-app video player to preview downloaded content before saving
-- **Sensors-Temp Dark Theme**: Modern dark radial UI styling with Material-UI and GitHub footer links
-- **Responsive Design**: Bootstrap grid system ensures compatibility across devices
+- **Mobile-First Dark Theme**: Cinematic dark radial UI with Google Fonts (Outfit + DM Sans), glassmorphism panels, and GitHub footer links
+- **Responsive Design**: Mobile-first CSS with breakpoints at 600px and 1024px, stacked buttons on mobile with 48px touch targets
 - **Error Handling**: User-friendly popover notifications for validation errors, timeouts, and rate limits
 - **Docker Support**: Multi-stage Dockerfile with health checks and nginx serving
 
@@ -88,7 +88,7 @@ The application provides a simple, focused interface:
 |-------|-----------|---------|
 | **Framework** | React 18 (Create React App) | UI component library |
 | **Language** | JavaScript (ES6+) | Application logic |
-| **Styling** | Material-UI v5 + Bootstrap 5 | Component styling and grid system |
+| **Styling** | Material-UI v5 + Bootstrap 5 + Google Fonts | Component styling, typography, and responsive layout |
 | **HTTP Client** | Axios | API communication |
 | **Build Tool** | react-scripts 5.0.1 | Development and production builds |
 | **Icons** | @mui/icons-material | UI iconography |
