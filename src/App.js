@@ -1,14 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './App.css';
 import { OverlayTrigger, Popover } from 'react-bootstrap';
 import Backdrop from '@mui/material/Backdrop';
-import CircularProgress from '@mui/material/CircularProgress';
+import LinearProgress from '@mui/material/LinearProgress';
 import Button from '@mui/material/Button';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import config from './config';
+
+const POLLING_INTERVAL = 2000;
+const POLLING_TIMEOUT = 300000;
+const DOWNLOAD_TIMEOUT = 300000;
+const PROCESS_TIMEOUT = 60000;
+const STORAGE_KEY = 'youtube_dl_pending_download';
 
 const darkTheme = createTheme({
   palette: { mode: 'dark' },
@@ -20,6 +27,154 @@ function App() {
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [url, setUrl] = useState(null);
   const [showPopover, setShowPopover] = useState(false);
+  const [codecUrlId, setCodecUrlId] = useState(null);
+  const [progress, setProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState('');
+  const [error, setError] = useState(null);
+  const pollingRef = useRef(null);
+  const pollingStartTimeRef = useRef(null);
+
+  useEffect(() => {
+    const savedDownload = localStorage.getItem(STORAGE_KEY);
+    if (savedDownload) {
+      try {
+        const { codecUrlId: savedId, startTime } = JSON.parse(savedDownload);
+        if (savedId && startTime) {
+          const elapsed = Date.now() - startTime;
+          if (elapsed < POLLING_TIMEOUT) {
+            setCodecUrlId(savedId);
+            setLoading(true);
+            setProgressMessage('Resuming download...');
+            pollProgress(savedId, startTime);
+          } else {
+            localStorage.removeItem(STORAGE_KEY);
+          }
+        }
+      } catch (err) {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+
+    return () => {
+      if (pollingRef.current) {
+        clearTimeout(pollingRef.current);
+      }
+    };
+  }, []);
+
+  const pollProgress = async (codecUrlId, startTime) => {
+    try {
+      const response = await axios.get(
+        `${config.API_URL}/api/v1/yt/videos/${codecUrlId}`,
+        { timeout: 10000 }
+      );
+      
+      const { status, progress: progressValue } = response.data;
+      
+      setProgress(progressValue || 0);
+      
+      if (status === 1) {
+        setProgressMessage('Download complete! Fetching video...');
+        await fetchCompletedVideo(codecUrlId);
+        return;
+      } else if (status === 3) {
+        setError('Download failed. Please try again.');
+        setLoading(false);
+        localStorage.removeItem(STORAGE_KEY);
+        return;
+      }
+      
+      setProgressMessage(`Downloading: ${progressValue.toFixed(1)}%`);
+      
+      if (Date.now() - startTime > POLLING_TIMEOUT) {
+        throw new Error('TIMEOUT');
+      }
+      
+      pollingRef.current = setTimeout(() => pollProgress(codecUrlId, startTime), POLLING_INTERVAL);
+      
+    } catch (err) {
+      if (err.message === 'TIMEOUT' || err.code === 'ECONNABORTED') {
+        setError('Request timed out. The backend may be overloaded. Please try again later.');
+      } else {
+        setError('Failed to check download status. Please try again.');
+      }
+      setLoading(false);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  };
+
+  const fetchCompletedVideo = async (codecUrlId) => {
+    try {
+      const response = await axios.get(
+        `${config.API_URL}/api/v1/yt/videos-uploaded/`,
+        { timeout: 10000 }
+      );
+      
+      const video = response.data.find(v => v.codecurl === codecUrlId);
+      
+      if (!video) {
+        setError('Video processing completed but file not found. Please contact support.');
+        setLoading(false);
+        localStorage.removeItem(STORAGE_KEY);
+        return;
+      }
+      
+      setProgressMessage('Preparing download...');
+      await downloadVideoFile(video.id);
+      
+    } catch (err) {
+      setError('Failed to fetch completed video. Please try again.');
+      setLoading(false);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  };
+
+  const downloadVideoFile = async (videoUploadedId) => {
+    try {
+      const response = await axios.get(
+        `${config.API_URL}/api/v1/yt/videos-uploaded/${videoUploadedId}`,
+        {
+          responseType: 'blob',
+          timeout: DOWNLOAD_TIMEOUT,
+          onDownloadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              setProgress(percentCompleted);
+              setProgressMessage(`Downloading file: ${percentCompleted}%`);
+            }
+          }
+        }
+      );
+      
+      const blobUrl = window.URL.createObjectURL(
+        new Blob([response.data], { type: 'application/octet-stream' })
+      );
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.setAttribute('download', `video_${videoUploadedId}.mp4`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      setUrl(blobUrl);
+      setDownloadUrl({ id: videoUploadedId });
+      setLoading(false);
+      setProgress(100);
+      setProgressMessage('Download complete!');
+      localStorage.removeItem(STORAGE_KEY);
+      
+    } catch (err) {
+      if (err.code === 'ECONNABORTED') {
+        setError('Download timed out. Please try again.');
+      } else {
+        setError('Failed to download video file. Please try again.');
+      }
+      setLoading(false);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  };
 
   const handleInputChange = (event) => {
     setVideoUrl(event.target.value);
@@ -55,37 +210,15 @@ function App() {
     return null;
   };
 
-  const downloadFile = (videoId) => {
-    axios
-      .get(`${config.API_URL}/api/v1/yt/videos-uploaded/${videoId}`, {
-        responseType: 'blob',
-      })
-      .then((response) => {
-        const blobUrl = window.URL.createObjectURL(
-          new Blob([response.data], { type: 'application/octet-stream' })
-        );
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.setAttribute('download', `video_${videoId}.mp4`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        setUrl(blobUrl);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error('Error:', error);
-        setLoading(false);
-      });
-  };
-
   const popover = (
     <Popover id="popover-basic">
-      <Popover.Body>Please enter a valid YouTube, Facebook, or TikTok video URL.</Popover.Body>
+      <Popover.Body>
+        {error || 'Please enter a valid YouTube, Facebook, or TikTok video URL.'}
+      </Popover.Body>
     </Popover>
   );
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     const cleanedUrl = validateAndCleanUrl(videoUrl);
 
     if (!cleanedUrl) {
@@ -95,25 +228,69 @@ function App() {
 
     setLoading(true);
     setShowPopover(false);
+    setError(null);
+    setProgress(0);
+    setProgressMessage('Processing video URL...');
 
-    axios
-      .post(`${config.API_URL}/api/v1/yt/videos-uploaded/`, { url: cleanedUrl })
-      .then((response) => {
-        setDownloadUrl(response.data);
-        downloadFile(response.data.id);
-      })
-      .catch((error) => {
-        console.error('Error:', error);
-        setLoading(false);
-      });
+    try {
+      const response = await axios.post(
+        `${config.API_URL}/api/v1/yt/videos-uploaded/`,
+        { url: cleanedUrl },
+        { timeout: PROCESS_TIMEOUT }
+      );
+      
+      const newCodecUrlId = response.data.id;
+      setCodecUrlId(newCodecUrlId);
+      
+      const startTime = Date.now();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        codecUrlId: newCodecUrlId,
+        startTime
+      }));
+      
+      setProgressMessage('Starting download...');
+      pollProgress(newCodecUrlId, startTime);
+      
+    } catch (err) {
+      if (err.code === 'ECONNABORTED') {
+        setError('Request timed out. The backend may be busy. Please try again.');
+      } else if (err.response?.status === 429) {
+        setError('Rate limit exceeded. Please wait a moment and try again.');
+      } else {
+        setError('Failed to start download. Please check the URL and try again.');
+      }
+      setLoading(false);
+    }
   };
 
   const handleClean = () => {
     setVideoUrl('');
-    setDownloadUrl('');
+    setDownloadUrl(null);
     setUrl('');
     setLoading(false);
     setShowPopover(false);
+    setError(null);
+    setProgress(0);
+    setProgressMessage('');
+    setCodecUrlId(null);
+    if (pollingRef.current) {
+      clearTimeout(pollingRef.current);
+      pollingRef.current = null;
+    }
+    localStorage.removeItem(STORAGE_KEY);
+  };
+
+  const handleCancel = () => {
+    if (pollingRef.current) {
+      clearTimeout(pollingRef.current);
+      pollingRef.current = null;
+    }
+    setLoading(false);
+    setError(null);
+    setProgress(0);
+    setProgressMessage('');
+    setCodecUrlId(null);
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   return (
@@ -135,11 +312,17 @@ function App() {
                 aria-label="Video URL"
               />
               <OverlayTrigger
-                trigger={showPopover ? 'click' : []}
+                trigger={showPopover || error ? 'click' : []}
                 placement="right"
                 overlay={popover}
                 rootClose
-                show={showPopover}
+                show={showPopover || !!error}
+                onToggle={(nextShow) => {
+                  if (!nextShow) {
+                    setError(null);
+                    setShowPopover(false);
+                  }
+                }}
               >
                 <Button variant="contained" onClick={handleDownload}>
                   Download
@@ -157,8 +340,39 @@ function App() {
           </div>
 
           {loading && (
-            <Backdrop sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }} open>
-              <CircularProgress color="inherit" />
+            <Backdrop 
+              sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }} 
+              open
+            >
+              <div style={{ textAlign: 'center', minWidth: '400px', padding: '20px' }}>
+                <LinearProgress 
+                  variant={progress > 0 ? "determinate" : "indeterminate"}
+                  value={progress} 
+                  sx={{ 
+                    width: '100%', 
+                    mb: 2, 
+                    height: 8, 
+                    borderRadius: 4 
+                  }}
+                />
+                <div style={{ fontSize: '18px', marginTop: '16px' }}>
+                  {progressMessage || 'Processing...'}
+                </div>
+                {progress > 0 && (
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', marginTop: '8px' }}>
+                    {progress.toFixed(1)}%
+                  </div>
+                )}
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<CancelIcon />}
+                  onClick={handleCancel}
+                  sx={{ mt: 3 }}
+                >
+                  Cancel Download
+                </Button>
+              </div>
             </Backdrop>
           )}
 

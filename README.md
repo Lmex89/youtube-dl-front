@@ -31,11 +31,15 @@ A modern, responsive web interface for downloading YouTube videos. Built with **
 
 - **YouTube URL Validation**: Smart regex-based validation that accepts various YouTube URL formats (standard, shortened, embedded, and shorts URLs)
 - **Clean URL Sanitization**: Automatically extracts and normalizes video IDs from messy URLs
-- **Real-time Feedback**: Loading states with Material-UI backdrop and circular progress indicators
+- **Real-time Progress Tracking**: Polls backend every 2 seconds for real yt-dlp download progress (0-100%)
+- **Deterministic Progress Bar**: Shows actual download percentage with MUI LinearProgress component
+- **Fail-Fast Timeouts**: Configurable timeouts for all operations (60s processing, 5min download, 5min polling)
+- **State Persistence**: Automatically resumes downloads on page refresh using localStorage
+- **Cancel Download**: Stop polling and clear state at any time during download
 - **Video Preview**: In-app video player to preview downloaded content before saving
 - **Dark Theme**: Modern dark UI using Material-UI's theming system
 - **Responsive Design**: Bootstrap grid system ensures compatibility across devices
-- **Error Handling**: User-friendly popover notifications for invalid inputs
+- **Error Handling**: User-friendly popover notifications for validation errors, timeouts, and rate limits
 - **Docker Support**: Multi-stage Dockerfile with health checks and nginx serving
 
 ### Supported YouTube URL Formats
@@ -53,11 +57,13 @@ https://www.youtube.com/embed/VIDEO_ID
 
 The application provides a simple, focused interface:
 
-1. **Input Field**: Enter any valid YouTube URL
+1. **Input Field**: Enter any valid YouTube, Facebook, or TikTok URL
 2. **Download Button**: Validates URL and initiates backend processing
 3. **Clean Button**: Clears the form and resets the state
-4. **Video Preview**: Watch the downloaded video before saving
-5. **Download Link**: Save the video file locally
+4. **Progress Modal**: Shows real-time download progress with percentage (0-100%)
+5. **Cancel Button**: Stop download at any time during processing
+6. **Video Preview**: Watch the downloaded video before saving
+7. **Download Link**: Save the video file locally
 
 ---
 
@@ -80,10 +86,10 @@ The application provides a simple, focused interface:
 | Component | Library | Purpose |
 |-----------|---------|---------|
 | `ThemeProvider` | MUI | Dark theme configuration |
-| `Backdrop` | MUI | Loading overlay |
-| `CircularProgress` | MUI | Loading spinner |
+| `Backdrop` | MUI | Loading overlay with progress display |
+| `LinearProgress` | MUI | Deterministic progress bar (0-100%) |
 | `Button` | MUI | Action buttons with variants |
-| `Popover` | react-bootstrap | Validation error messages |
+| `Popover` | react-bootstrap | Validation and error messages |
 | `OverlayTrigger` | react-bootstrap | Popover positioning |
 
 ---
@@ -299,16 +305,18 @@ The container includes a health check that pings the `/health` endpoint every 30
 
 ## API Integration
 
-The frontend communicates with a backend API to process YouTube downloads.
+The frontend communicates with a backend API to process YouTube downloads using an **async polling-based progress tracking** system.
 
 ### API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/yt/videos-uploaded/` | Submit YouTube URL for processing |
-| GET | `/api/v1/yt/videos-uploaded/{id}` | Download processed video file |
+| POST | `/api/v1/yt/videos-uploaded/` | Submit URL for processing (returns 202 with codecurl ID) |
+| GET | `/api/v1/yt/videos/<codecurl_id>` | Poll for download status and progress (0-100%) |
+| GET | `/api/v1/yt/videos-uploaded/` | List all completed downloads |
+| GET | `/api/v1/yt/videos-uploaded/<videouploaded_id>` | Download processed video file |
 
-### Request Flow
+### Request Flow (Async with Progress Tracking)
 
 1. **URL Submission** (POST)
    ```javascript
@@ -320,27 +328,79 @@ The frontend communicates with a backend API to process YouTube downloads.
    }
    ```
    
-   Response:
+   Response (202 Accepted):
    ```json
    {
-     "id": "unique-video-id",
-     "title": "Video Title",
-     "url": "..."
+     "id": "codecurl-uuid",
+     "status": "pending",
+     "url": "https://..."
    }
    ```
 
-2. **File Download** (GET)
+2. **Progress Polling** (GET)
    ```javascript
-   GET /api/v1/yt/videos-uploaded/{id}
+   GET /api/v1/yt/videos/<codecurl_id>
+   ```
+   
+   Response:
+   ```json
+   {
+     "id": "codecurl-uuid",
+     "url": "https://...",
+     "status": 2,           // 1=SUCCESS, 2=PENDING, 3=ERROR
+     "progress": 45.7,      // 0.0-100.0 (real yt-dlp progress)
+     "created_at": "...",
+     "updated_at": "...",
+     "visible": true
+   }
+   ```
+   
+   - Polls every 2 seconds
+   - Updates progress bar with real percentage
+   - Stops when status=1 (SUCCESS) or status=3 (ERROR)
+
+3. **Fetch Completed Video** (GET)
+   ```javascript
+   GET /api/v1/yt/videos-uploaded/
+   ```
+   
+   - Filters results to find `VideosUploaded` record with matching `codecurl` foreign key
+   - Retrieves the `VideosUploaded.id` for file download
+
+4. **File Download** (GET)
+   ```javascript
+   GET /api/v1/yt/videos-uploaded/<videouploaded_id>
    Response-Type: blob
    ```
+   
+   - Downloads actual MP4 file with progress tracking
+   - Uses axios `onDownloadProgress` callback
+   - Shows progress from 0-100%
+
+### Timeout Configuration
+
+| Operation | Timeout | Behavior |
+|-----------|---------|----------|
+| POST videos-uploaded/ | 60 seconds | Show error popover |
+| GET videos/<id> (poll) | 10 seconds per request | Skip to next poll |
+| Total polling duration | 5 minutes | Show timeout error |
+| GET videos-uploaded/ (list) | 10 seconds | Show error |
+| GET videos-uploaded/<id> (blob) | 5 minutes | Show timeout error |
+
+### State Persistence
+
+- Pending downloads are saved to `localStorage` with key `youtube_dl_pending_download`
+- Automatically resumes polling on page refresh if within 5-minute timeout
+- Cleared on success, error, or cancel
 
 ### Error Handling
 
 The application handles various error scenarios:
 - **Invalid URLs**: Shows popover with validation message
-- **Network Errors**: Logged to console, loading state cleared
-- **API Errors**: Logged to console with error details
+- **Timeout Errors**: Shows "Request timed out" message
+- **Rate Limit Errors**: Shows "Rate limit exceeded" message (HTTP 429)
+- **Network Errors**: Shows "Failed to check download status" message
+- **Download Failures**: Shows "Download failed" message (status=3)
 
 ---
 
