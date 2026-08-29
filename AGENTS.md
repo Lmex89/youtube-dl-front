@@ -1,8 +1,9 @@
 # youtube-dl-front
 
-## CodeGraph
+## Core Rules
 
-- **Mandatory**: Always use `codegraph` tools to query, explore, and understand the project codebase, symbols, and dependencies before making changes.
+- **CodeGraph Mandatory**: Always use `codegraph` tools over native/own tools to query, explore, and understand the project codebase, symbols, and dependencies. Only fallback to native/own tools if the query is not satisfied by `codegraph`.
+- **Documentation Maintenance**: Always update `AGENTS.md` and `README.md` based on new commits, features, or architectural changes to keep documentation synchronized and up to date.
 
 ## Commands (use yarn, not npm)
 
@@ -13,10 +14,12 @@
 | `yarn test` | Jest watch mode (CRA default) |
 | `docker compose up -d` | Production container on :3012 |
 
-## Architecture
+## Architecture & Features
 
 - **Stack**: React 18 (CRA), MUI v5, react-bootstrap, Axios. **No TypeScript, no routing.**
 - **Entry**: `src/index.js` → `src/App.js`
+- **Supported Platforms**: YouTube, Facebook, and TikTok URLs validated and sanitized via `validateAndCleanUrl` in `src/App.js`.
+- **UI & Theme**: Dark theme with radial gradients based on sensors-temp design, MUI LinearProgress, and GitHub footer links.
 - **Env**: `REACT_APP_API_URL` in `.env` (must use `REACT_APP_` prefix — CRA requirement). Falls back to `http://localhost:8000`.
 - **Legacy**: `src/App_old.jsx` is stale — do not edit.
 

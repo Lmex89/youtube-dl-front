@@ -29,7 +29,7 @@ A modern, responsive web interface for downloading YouTube videos. Built with **
 
 ## Features
 
-- **YouTube URL Validation**: Smart regex-based validation that accepts various YouTube URL formats (standard, shortened, embedded, and shorts URLs)
+- **Multi-Platform URL Validation**: Smart regex-based validation accepting YouTube, Facebook, and TikTok video URLs
 - **Clean URL Sanitization**: Automatically extracts and normalizes video IDs from messy URLs
 - **Real-time Progress Tracking**: Polls backend every 2 seconds for real yt-dlp download progress (0-100%)
 - **Deterministic Progress Bar**: Shows actual download percentage with MUI LinearProgress component
@@ -37,18 +37,31 @@ A modern, responsive web interface for downloading YouTube videos. Built with **
 - **State Persistence**: Automatically resumes downloads on page refresh using localStorage
 - **Cancel Download**: Stop polling and clear state at any time during download
 - **Video Preview**: In-app video player to preview downloaded content before saving
-- **Dark Theme**: Modern dark UI using Material-UI's theming system
+- **Sensors-Temp Dark Theme**: Modern dark radial UI styling with Material-UI and GitHub footer links
 - **Responsive Design**: Bootstrap grid system ensures compatibility across devices
 - **Error Handling**: User-friendly popover notifications for validation errors, timeouts, and rate limits
 - **Docker Support**: Multi-stage Dockerfile with health checks and nginx serving
 
-### Supported YouTube URL Formats
+### Supported URL Formats
 
+#### YouTube
 ```
 https://www.youtube.com/watch?v=VIDEO_ID
 https://youtu.be/VIDEO_ID
 https://youtube.com/shorts/VIDEO_ID
 https://www.youtube.com/embed/VIDEO_ID
+```
+
+#### Facebook
+```
+https://www.facebook.com/watch?v=VIDEO_ID
+https://fb.watch/VIDEO_ID
+```
+
+#### TikTok
+```
+https://www.tiktok.com/@user/video/VIDEO_ID
+https://vm.tiktok.com/VIDEO_ID
 ```
 
 ---

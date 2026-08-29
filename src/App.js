@@ -313,7 +313,7 @@ function App() {
               />
               <OverlayTrigger
                 trigger={showPopover || error ? 'click' : []}
-                placement="right"
+                placement="bottom"
                 overlay={popover}
                 rootClose
                 show={showPopover || !!error}
@@ -344,7 +344,7 @@ function App() {
               sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }} 
               open
             >
-              <div style={{ textAlign: 'center', minWidth: '400px', padding: '20px' }}>
+              <div className="backdrop-content">
                 <LinearProgress 
                   variant={progress > 0 ? "determinate" : "indeterminate"}
                   value={progress} 
@@ -355,11 +355,11 @@ function App() {
                     borderRadius: 4 
                   }}
                 />
-                <div style={{ fontSize: '18px', marginTop: '16px' }}>
+                <div className="backdrop-message">
                   {progressMessage || 'Processing...'}
                 </div>
                 {progress > 0 && (
-                  <div style={{ fontSize: '24px', fontWeight: 'bold', marginTop: '8px' }}>
+                  <div className="backdrop-percentage">
                     {progress.toFixed(1)}%
                   </div>
                 )}
@@ -368,7 +368,7 @@ function App() {
                   color="inherit"
                   startIcon={<CancelIcon />}
                   onClick={handleCancel}
-                  sx={{ mt: 3 }}
+                  className="backdrop-cancel-btn"
                 >
                   Cancel Download
                 </Button>
