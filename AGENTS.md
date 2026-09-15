@@ -9,6 +9,7 @@
 
 | Command | Action |
 |---|---|
+| `nvm use` | Switch to Node 24 (pinned in `.nvmrc`) |
 | `yarn start` | Dev server on :3000 |
 | `yarn build` | Production build to `build/` |
 | `yarn test` | Jest watch mode (CRA default) |

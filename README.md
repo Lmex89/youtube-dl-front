@@ -121,7 +121,7 @@ The application provides a simple, focused interface:
 
 Before you begin, ensure you have the following installed:
 
-- **Node.js**: Version 18.x or higher (recommended: 22.x)
+- **Node.js**: Version 24.x (pinned via `.nvmrc`; [nvm](https://github.com/nvm-sh/nvm) recommended)
 - **Yarn**: Version 1.22.x or higher
 - **Docker** (optional): For containerized deployment
 - **Docker Compose** (optional): For orchestrated deployment
@@ -129,7 +129,8 @@ Before you begin, ensure you have the following installed:
 ### Verify Installation
 
 ```bash
-node --version    # Should be v18+ or v22+
+nvm use           # Reads .nvmrc and switches to Node 24
+node --version    # Should be v24.x
 yarn --version    # Should be 1.22+
 docker --version  # Optional, for containerized deployment
 ```
@@ -253,7 +254,7 @@ npx serve -s build -l 3000
 ### Overview
 
 The project includes a multi-stage Dockerfile that:
-1. **Build Stage**: Uses Node.js 22 Alpine to compile the React app
+1. **Build Stage**: Uses Node.js 24 Alpine to compile the React app
 2. **Runtime Stage**: Uses nginx unprivileged Alpine to serve static files
 
 ### Docker Configuration Files
