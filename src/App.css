@@ -33,6 +33,20 @@ h1 {
   max-width: 100%;
 }
 
+.app-header {
+  margin-bottom: 20px;
+}
+
+.app-kicker {
+  display: inline-block;
+  margin-bottom: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #38bdf8;
+}
+
 .panel {
   background: rgba(15, 23, 42, 0.72);
   border: 1px solid #334155;
@@ -45,11 +59,26 @@ h1 {
   box-sizing: border-box;
 }
 
-.input-group {
+.download-form {
+  text-align: left;
+}
+
+.field {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  align-items: stretch;
+  gap: 8px;
+}
+
+.field-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.field-error {
+  color: #fca5a5;
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 
 .form-control,
@@ -75,6 +104,111 @@ input.form-control {
   outline: none;
   border-color: #38bdf8;
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+}
+
+.form-control[aria-invalid='true'] {
+  border-color: #b91c1c;
+}
+
+.profile-fieldset {
+  border: 0;
+  margin: 18px 0 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.profile-fieldset:disabled .profile-option {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.profile-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  background: #1e293b;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.profile-option:hover {
+  border-color: #475569;
+  transform: translateY(-1px);
+}
+
+.profile-option.is-selected {
+  border-color: #38bdf8;
+  background: #1b2b45;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.18);
+}
+
+.profile-option:focus-within {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+}
+
+.profile-radio {
+  accent-color: #38bdf8;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  flex: none;
+  cursor: pointer;
+}
+
+.profile-option-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.profile-option-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-option-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.profile-option-tag {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.profile-option-description {
+  color: #94a3b8;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.form-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
 }
 
 /* Button styling - mobile first */
@@ -104,7 +238,12 @@ input.form-control {
   transform: translateY(0) !important;
 }
 
-/* Contained variant (Download button) */
+.MuiButton-root.Mui-disabled {
+  opacity: 0.55;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
 .MuiButton-contained {
   background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%) !important;
   border-color: #38bdf8 !important;
@@ -118,7 +257,6 @@ input.form-control {
   box-shadow: 0 6px 16px rgba(56, 189, 248, 0.35) !important;
 }
 
-/* Outlined variant (Clean button) */
 .MuiButton-outlined {
   background: transparent !important;
   border-color: #334155 !important;
@@ -135,129 +273,174 @@ input.form-control {
   width: 100%;
 }
 
-.video-container {
+.status-card,
+.result-card {
+  text-align: left;
+}
+
+.status-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
+.status-phase {
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.status-progress {
+  height: 8px !important;
+  border-radius: 999px !important;
+  background-color: #1e293b !important;
+}
+
+.status-progress .MuiLinearProgress-bar {
+  background: linear-gradient(90deg, #0369a1, #38bdf8);
+  border-radius: 999px;
+}
+
+.status-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.status-message {
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.status-percentage {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.status-detail {
+  margin-top: 8px;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.status-actions,
+.result-actions {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  margin-bottom: 1.5rem;
+  gap: 10px;
   margin-top: 16px;
 }
 
-.video-id {
-  margin-bottom: 12px;
-  color: #94a3b8;
-  font-size: 0.875rem;
+.status-card-error {
+  border-color: #7f1d1d;
 }
 
-.video-player {
-  width: 100%;
-  max-width: 100%;
-  border-radius: 12px;
-  border: 1px solid #334155;
-  background: #000;
-}
-
-.download-link {
-  margin-top: 16px;
-  font-size: 1rem;
-}
-
-.download-link a {
-  color: #38bdf8;
-  text-decoration: none;
-  font-weight: 500;
-  transition: color 0.2s ease;
-}
-
-.download-link a:hover {
-  color: #7dd3fc;
-  text-decoration: underline;
-}
-
-.status {
-  color: #cbd5e1;
-  font-size: 0.875rem;
-}
-
-.status strong {
-  color: #38bdf8;
-  font-weight: 600;
-}
-
-.error {
+.status-card-error .status-phase {
   color: #fca5a5;
-  font-size: 0.875rem;
 }
 
-/* Popover styling */
-.popover {
-  background: rgba(15, 23, 42, 0.95) !important;
-  border: 1px solid #334155 !important;
-  border-radius: 12px !important;
-  color: #fca5a5 !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+.status-card-warning {
+  border-color: #92400e;
 }
 
-.popover-body {
-  color: #fca5a5 !important;
-  font-family: 'DM Sans', sans-serif !important;
+.status-card-warning .status-phase {
+  color: #fcd34d;
 }
 
-/* Backdrop styling */
-.MuiBackdrop-root {
-  background: rgba(15, 23, 42, 0.85) !important;
-  backdrop-filter: blur(8px);
+.result-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-.backdrop-content {
-  text-align: center;
-  padding: 24px;
-  width: 90vw;
-  max-width: 400px;
+.result-icon {
+  font-size: 2rem !important;
 }
 
-.backdrop-message {
-  font-size: 1.1rem;
-  margin-top: 16px;
+.result-icon-success {
+  color: #4ade80;
+}
+
+.result-heading {
+  min-width: 0;
+}
+
+.result-title {
+  margin: 0;
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.25rem;
   color: #e2e8f0;
 }
 
-.backdrop-percentage {
-  font-size: 2rem;
-  font-weight: 700;
-  font-family: 'Outfit', sans-serif;
+.result-subtitle {
+  margin: 4px 0 0;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.media-frame {
+  background: #000;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.media-player {
+  display: block;
+  width: 100%;
+  background: #000;
+}
+
+audio.media-player {
+  padding: 10px;
+}
+
+.result-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.result-meta-item {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.save-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.result-card .field-error {
   margin-top: 8px;
-  color: #38bdf8;
-}
-
-.backdrop-cancel-btn {
-  margin-top: 24px !important;
-  width: 100% !important;
-}
-
-@media (min-width: 600px) {
-  .backdrop-content {
-    min-width: 400px;
-    width: auto;
-    padding: 32px;
-  }
-
-  .backdrop-message {
-    font-size: 1.125rem;
-  }
-
-  .backdrop-percentage {
-    font-size: 2.5rem;
-  }
-
-  .backdrop-cancel-btn {
-    width: auto !important;
-  }
-}
-
-/* Circular progress */
-.MuiCircularProgress-root {
-  color: #38bdf8 !important;
 }
 
 /* Footer styling - mobile first */
@@ -305,7 +488,7 @@ input.form-control {
   font-size: 0.85rem;
 }
 
-/* Desktop styles (600px and up) */
+/* Tablet styles (600px and up) */
 @media (min-width: 600px) {
   .App {
     padding: 24px;
@@ -326,35 +509,37 @@ input.form-control {
     border-radius: 18px;
   }
 
-  .input-group {
-    flex-direction: row;
-    align-items: center;
-    gap: 12px;
-  }
-
   .form-control,
   input.form-control {
-    flex: 1 !important;
-    min-width: 300px !important;
-    width: auto !important;
     font-size: 0.95rem !important;
-    padding: 10px 14px !important;
+    padding: 12px 14px !important;
   }
 
   .MuiButton-root {
     width: auto;
-    min-height: 40px !important;
+    min-height: 44px !important;
     font-size: 0.9rem !important;
-    padding: 8px 16px !important;
+    padding: 10px 18px !important;
   }
 
-  .video-container {
-    margin-bottom: 2rem;
-    margin-top: 20px;
+  .profile-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .video-player {
-    max-width: 600px;
+  .form-actions,
+  .status-actions,
+  .result-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
+  .status-actions,
+  .result-actions {
+    justify-content: flex-start;
+  }
+
+  .result-title {
+    font-size: 1.4rem;
   }
 
   .footer-links {

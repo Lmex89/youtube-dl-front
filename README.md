@@ -31,16 +31,27 @@ A modern, responsive web interface for downloading YouTube videos. Built with **
 
 - **Multi-Platform URL Validation**: Smart regex-based validation accepting YouTube, Facebook, and TikTok video URLs
 - **Clean URL Sanitization**: Automatically extracts and normalizes video IDs from messy URLs
-- **Real-time Progress Tracking**: Polls backend every 2 seconds for real yt-dlp download progress (0-100%)
+- **Output Profiles**: Choose between Standard MP4 (default), WhatsApp Video (≤16 MiB), and Audio Only (M4A)
+- **Real-time Progress Tracking**: Polls backend every ~1.5 seconds (with jitter) for real progress (0-100%)
+- **Resilient Polling**: Transient timeouts, network errors, 429s, and 5xx responses retry with backoff instead of failing the job
 - **Deterministic Progress Bar**: Shows actual download percentage with MUI LinearProgress component
-- **Fail-Fast Timeouts**: Configurable timeouts for all operations (60s processing, 5min download, 5min polling)
-- **State Persistence**: Automatically resumes downloads on page refresh using localStorage
-- **Cancel Download**: Stop polling and clear state at any time during download
-- **Video Preview**: In-app video player to preview downloaded content before saving
+- **Configurable Timeouts**: 60s submit, 10s per poll, 5min file download, 15min total polling budget
+- **State Persistence**: Versioned localStorage record resumes downloads on page refresh within the 15-minute budget
+- **Cancel / Retry**: Stop polling or resubmit at any time; stuck jobs offer a retry action
+- **Profile-Aware Preview**: `<video>` for MP4 profiles and `<audio>` for M4A, streamed from the download endpoint
+- **Profile-Aware Save**: Explicit "Save" button downloads the blob with progress and the correct `.mp4`/`.m4a` filename
 - **Mobile-First Dark Theme**: Cinematic dark radial UI with Google Fonts (Outfit + DM Sans), glassmorphism panels, and GitHub footer links
 - **Responsive Design**: Mobile-first CSS with breakpoints at 600px and 1024px, stacked buttons on mobile with 48px touch targets
-- **Error Handling**: User-friendly popover notifications for validation errors, timeouts, and rate limits
+- **Accessible UI**: Inline validation with `role="alert"`, radiogroup profile cards, live progress announcements, visible focus, and reduced-motion support
 - **Docker Support**: Multi-stage Dockerfile with health checks and nginx serving
+
+### Output Profiles
+
+| Profile | Label | Output | MIME | Notes |
+|---------|-------|--------|------|-------|
+| `standard_video` | Standard MP4 | `.mp4` | `video/mp4` | Default; best quality |
+| `whatsapp_video` | WhatsApp Video | `.mp4` | `video/mp4` | Re-encoded for WhatsApp Cloud API, ≤16 MiB |
+| `audio_m4a` | Audio Only | `.m4a` | `audio/mp4` | Audio-only extraction |
 
 ### Supported URL Formats
 
@@ -71,12 +82,12 @@ https://vm.tiktok.com/VIDEO_ID
 The application provides a simple, focused interface:
 
 1. **Input Field**: Enter any valid YouTube, Facebook, or TikTok URL
-2. **Download Button**: Validates URL and initiates backend processing
-3. **Clean Button**: Clears the form and resets the state
-4. **Progress Modal**: Shows real-time download progress with percentage (0-100%)
-5. **Cancel Button**: Stop download at any time during processing
-6. **Video Preview**: Watch the downloaded video before saving
-7. **Download Link**: Save the video file locally
+2. **Profile Selector**: Pick Standard MP4, WhatsApp Video, or Audio Only
+3. **Download Button**: Validates URL and initiates backend processing (disabled during a job or 429 cooldown)
+4. **Progress Card**: Live phase text and percentage (0-100%) with a cancel action
+5. **Result Card**: Profile-aware `<video>` or `<audio>` preview plus a Save button with download progress
+6. **Error / Timeout Cards**: Clear messages with retry for failed jobs, missing records, and 15-minute timeouts
+7. **Clear Button**: Clears the form and resets the state
 
 ---
 
@@ -88,7 +99,7 @@ The application provides a simple, focused interface:
 |-------|-----------|---------|
 | **Framework** | React 18 (Create React App) | UI component library |
 | **Language** | JavaScript (ES6+) | Application logic |
-| **Styling** | Material-UI v5 + Bootstrap 5 + Google Fonts | Component styling, typography, and responsive layout |
+| **Styling** | Material-UI v5 + custom CSS + Google Fonts | Component styling, typography, and responsive layout (Bootstrap CSS remains imported but is not used by the app) |
 | **HTTP Client** | Axios | API communication |
 | **Build Tool** | react-scripts 5.0.1 | Development and production builds |
 | **Icons** | @mui/icons-material | UI iconography |
@@ -99,11 +110,10 @@ The application provides a simple, focused interface:
 | Component | Library | Purpose |
 |-----------|---------|---------|
 | `ThemeProvider` | MUI | Dark theme configuration |
-| `Backdrop` | MUI | Loading overlay with progress display |
-| `LinearProgress` | MUI | Deterministic progress bar (0-100%) |
+| `LinearProgress` | MUI | Deterministic progress bars (job and file save) |
 | `Button` | MUI | Action buttons with variants |
-| `Popover` | react-bootstrap | Validation and error messages |
-| `OverlayTrigger` | react-bootstrap | Popover positioning |
+| Profile radio cards | Native inputs + CSS | Accessible output-profile selection with `fieldset`/`legend` |
+| Status / result cards | React + CSS | Progress, success, error, and timeout states with inline `role="alert"` messaging |
 
 ---
 
@@ -147,7 +157,7 @@ The installation will download all required packages including:
 - React 18 and React DOM
 - Material-UI core, icons, and styles
 - Axios for HTTP requests
-- Bootstrap and react-bootstrap for styling
+- Bootstrap and react-bootstrap (legacy, not used by the current UI)
 - Testing utilities
 
 ---
@@ -337,7 +347,8 @@ The frontend communicates with a backend API to process YouTube downloads using 
    Content-Type: application/json
    
    {
-     "url": "https://www.youtube.com/watch?v=VIDEO_ID"
+     "url": "https://www.youtube.com/watch?v=VIDEO_ID",
+     "output_profile": "standard_video"
    }
    ```
    
@@ -346,9 +357,12 @@ The frontend communicates with a backend API to process YouTube downloads using 
    {
      "id": "codecurl-uuid",
      "status": "pending",
-     "url": "https://..."
+     "url": "https://...",
+     "output_profile": "standard_video"
    }
    ```
+   
+   `output_profile` is optional and defaults to `standard_video`; the UI always sends the selected profile.
 
 2. **Progress Polling** (GET)
    ```javascript
@@ -360,6 +374,7 @@ The frontend communicates with a backend API to process YouTube downloads using 
    {
      "id": "codecurl-uuid",
      "url": "https://...",
+     "output_profile": "standard_video",
      "status": 2,           // 1=SUCCESS, 2=PENDING, 3=ERROR
      "progress": 45.7,      // 0.0-100.0 (real yt-dlp progress)
      "created_at": "...",
@@ -368,52 +383,63 @@ The frontend communicates with a backend API to process YouTube downloads using 
    }
    ```
    
-   - Polls every 2 seconds
-   - Updates progress bar with real percentage
+   - Polls every ~1.5 seconds (plus up to 300ms jitter)
+   - Updates progress bar with real percentage and profile-aware phase text
    - Stops when status=1 (SUCCESS) or status=3 (ERROR)
+   - Transient failures (timeout, network, 429, 5xx) set a notice and retry; 429 doubles the interval up to 10s
 
 3. **Fetch Completed Video** (GET)
    ```javascript
    GET /api/v1/yt/videos-uploaded/
    ```
    
-   - Filters results to find `VideosUploaded` record with matching `codecurl` foreign key
-   - Retrieves the `VideosUploaded.id` for file download
+   - Filters results to find the `VideosUploaded` record whose `codecurl` matches the job id
+   - Retries the lookup once after 1.5s when the record is not visible yet
+   - Retrieves `VideosUploaded.id` for preview and file download
 
-4. **File Download** (GET)
+4. **File Preview / Download** (GET)
    ```javascript
    GET /api/v1/yt/videos-uploaded/<videouploaded_id>
-   Response-Type: blob
    ```
    
-   - Downloads actual MP4 file with progress tracking
-   - Uses axios `onDownloadProgress` callback
-   - Shows progress from 0-100%
+   - Preview streams the endpoint directly in `<video>` (MP4) or `<audio>` (M4A)
+   - Saving downloads the blob with axios `onDownloadProgress` and the profile extension
 
 ### Timeout Configuration
 
 | Operation | Timeout | Behavior |
 |-----------|---------|----------|
-| POST videos-uploaded/ | 60 seconds | Show error popover |
-| GET videos/<id> (poll) | 10 seconds per request | Skip to next poll |
-| Total polling duration | 5 minutes | Show timeout error |
-| GET videos-uploaded/ (list) | 10 seconds | Show error |
-| GET videos-uploaded/<id> (blob) | 5 minutes | Show timeout error |
+| POST videos-uploaded/ | 60 seconds | Error card; 429 starts a 60s submit cooldown |
+| GET videos/<id> (poll) | 10 seconds per request | Retry with backoff |
+| Total polling duration | 15 minutes | "Taking too long" card with retry |
+| GET videos-uploaded/ (list) | 10 seconds | Retry, then error |
+| GET videos-uploaded/<id> (blob) | 5 minutes | Error shown inside the result card |
 
 ### State Persistence
 
-- Pending downloads are saved to `localStorage` with key `youtube_dl_pending_download`
-- Automatically resumes polling on page refresh if within 5-minute timeout
-- Cleared on success, error, or cancel
+- Pending jobs are saved to `localStorage` under the versioned key `youtube_dl_pending_download:v2` as `{ version, jobId, profile, sourceUrl, startedAt }`
+- Automatically resumes polling on page refresh while within the 15-minute budget
+- The legacy `youtube_dl_pending_download` key is removed on mount
+- Cleared on success, terminal error, timeout, or cancel; all storage access is wrapped in try/catch
+
+### Analytics
+
+`src/analytics.js` pushes events to `window.dataLayer` (a no-op until an analytics provider is added):
+
+- `download_submitted { profile }`
+- `download_finished { profile, seconds }`
+- `download_failed { profile, status }`
+- `download_cancelled`, `download_timed_out`
 
 ### Error Handling
 
 The application handles various error scenarios:
-- **Invalid URLs**: Shows popover with validation message
-- **Timeout Errors**: Shows "Request timed out" message
-- **Rate Limit Errors**: Shows "Rate limit exceeded" message (HTTP 429)
-- **Network Errors**: Shows "Failed to check download status" message
-- **Download Failures**: Shows "Download failed" message (status=3)
+- **Invalid URLs**: Inline validation error next to the input (`role="alert"`, `aria-invalid`)
+- **400 Bad Request**: Shows the backend error plus the list of allowed profiles
+- **Rate Limit (429)**: Submit shows a ~60s cooldown and disables the button; polling backs off instead
+- **Timeout / Network**: Keeps the job alive, shows a retry notice, and respects the 15-minute budget
+- **Download Failures**: Shows a failure card with a retry action (status=3 or terminal HTTP errors)
+- **Stuck Jobs**: After 15 minutes the UI stops polling and offers a retry
 
 ---
 
@@ -427,14 +453,23 @@ youtube-dl-front/
 │   ├── favicon.ico            # Favicon
 │   └── logo*.png              # App icons
 ├── src/                       # Source code
+│   ├── api/
+│   │   ├── downloads.js      # API client + error normalization
+│   │   └── downloads.test.js # API client tests
+│   ├── hooks/
+│   │   ├── useDownloadJob.js     # Submit/poll/resolve/save state machine
+│   │   └── useDownloadJob.test.js
 │   ├── App.js                # Main application component
 │   ├── App.css               # Application styles
+│   ├── App.test.js           # UI integration tests
+│   ├── downloadProfiles.js   # Output profile metadata + helpers
+│   ├── downloadProfiles.test.js
+│   ├── analytics.js          # dataLayer analytics adapter
 │   ├── index.js              # Application entry point
-│   ├── index.css             # Global styles
+│   ├── index.css             # Global styles (focus, reduced motion)
 │   ├── config.js             # Configuration management
 │   ├── App_old.jsx           # Legacy file (do not edit)
-│   ├── reportWebVitals.js    # Performance monitoring
-│   └── App.test.js           # Test file (needs update)
+│   └── reportWebVitals.js    # Performance monitoring
 ├── docker/                    # Docker configuration
 │   └── nginx/
 │       └── default.conf       # Nginx server config
@@ -452,7 +487,11 @@ youtube-dl-front/
 | File | Responsibility |
 |------|---------------|
 | `src/index.js` | React application bootstrap, imports Bootstrap CSS |
-| `src/App.js` | Main component with URL validation, API calls, and UI |
+| `src/App.js` | URL validation, profile selection, and rendering of progress/result/error states |
+| `src/api/downloads.js` | `submitDownload`, `getJob`, `findUpload`, `downloadFile`, `buildDownloadUrl`, and `DownloadApiError` normalization |
+| `src/hooks/useDownloadJob.js` | Download state machine: submit → poll → resolve → preview/save, cancel/retry, 15-minute budget, v2 persistence |
+| `src/downloadProfiles.js` | Profile labels, extensions, MIME types, preview type, progress phrasing, file names |
+| `src/analytics.js` | `trackDownloadEvent` pushes to `window.dataLayer` |
 | `src/config.js` | Environment variable handling with fallbacks |
 | `src/App.css` | Custom CSS styles |
 | `src/reportWebVitals.js` | Web Vitals performance tracking |
@@ -500,24 +539,21 @@ NODE_ENV=production
 
 ### Common Issues
 
-#### 1. Tests Failing
+#### 1. Tests Failing to Parse Axios
 
-**Problem**: `App.test.js` fails with "learn react" not found error.
+**Problem**: `SyntaxError: Cannot use import statement outside a module` pointing at `node_modules/axios/index.js`.
 
-**Cause**: The default Create React App test checks for text that no longer exists in the updated UI.
+**Cause**: Axios 1.4 ships an ESM `main` entry that Jest 27 (CRA 5) cannot parse.
 
-**Solution**: Update the test or remove it if not needed:
-```javascript
-// src/App.test.js
-import { render, screen } from '@testing-library/react';
-import App from './App';
-
-test('renders YouTube downloader', () => {
-  render(<App />);
-  const titleElement = screen.getByText(/YouTube Video Downloader/i);
-  expect(titleElement).toBeInTheDocument();
-});
+**Solution**: `package.json` maps axios to its CJS build through the CRA-supported Jest override:
+```json
+"jest": {
+  "moduleNameMapper": {
+    "^axios$": "<rootDir>/node_modules/axios/dist/node/axios.cjs"
+  }
+}
 ```
+Keep this mapping when changing test configuration. Run the suite with `CI=true yarn test --watchAll=false`.
 
 #### 2. API Not Found
 
@@ -595,15 +631,17 @@ No additional polyfills are required as Create React App includes the necessary 
 
 ### Performance Considerations
 
-- Video downloads are handled as blobs to avoid memory issues
-- Loading states prevent duplicate requests
+- Previews stream the download endpoint directly; only explicit saves fetch the blob, then revoke the object URL after 60s
+- Polling schedules the next request only after the previous one settles, so slow responses never stack up
+- Busy phases disable the form to prevent duplicate requests
+- All timers and in-flight requests are aborted on unmount/cancel (Strict Mode safe)
 - Web Vitals monitoring is enabled for performance tracking
 
 ### Security
 
 - URL validation prevents arbitrary URL submissions
 - All API calls use HTTPS in production
-- No sensitive data stored in local storage or cookies
+- localStorage stores only job id, profile, source URL, and timestamp (no tokens or file contents)
 
 ---
 

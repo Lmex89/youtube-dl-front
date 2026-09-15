@@ -16,48 +16,63 @@
 
 ## Architecture & Features
 
-- **Stack**: React 18 (CRA), MUI v5, react-bootstrap, Axios. **No TypeScript, no routing.**
+- **Stack**: React 18 (CRA), MUI v5, Axios. **No TypeScript, no routing.** (`react-bootstrap` / Bootstrap CSS is still installed but no longer used by `App.js`.)
 - **Entry**: `src/index.js` → `src/App.js`
 - **Supported Platforms**: YouTube, Facebook, and TikTok URLs validated and sanitized via `validateAndCleanUrl` in `src/App.js`.
-- **UI & Theme**: Mobile-first dark theme with cinematic radial gradients, Google Fonts (Outfit for headings, DM Sans for body), glassmorphism panels, and GitHub footer links. Responsive breakpoints at 600px (tablet) and 1024px (desktop).
+- **Output Profiles**: `standard_video` (default), `whatsapp_video`, `audio_m4a` defined in `src/downloadProfiles.js` (labels, extensions, MIME, preview type, progress phrasing).
+- **UI & Theme**: Mobile-first dark theme with cinematic radial gradients, Google Fonts (Outfit for headings, DM Sans for body), glassmorphism panels, and GitHub footer links. Responsive breakpoints at 600px (tablet) and 1024px (desktop). Profile radio cards collapse to one column on mobile.
 - **Env**: `REACT_APP_API_URL` in `.env` (must use `REACT_APP_` prefix — CRA requirement). Falls back to `http://localhost:8000`.
 - **Legacy**: `src/App_old.jsx` is stale — do not edit.
 
+### Module Layout
+
+| File | Responsibility |
+|---|---|
+| `src/api/downloads.js` | API client (`submitDownload`, `getJob`, `findUpload`, `downloadFile`, `buildDownloadUrl`) + `DownloadApiError` normalization (400/404/429/5xx, blob errors, timeout, cancellation) |
+| `src/hooks/useDownloadJob.js` | Download state machine (`PHASES`), polling with jitter/backoff, 15-minute budget, cancel/retry/save, v2 localStorage resume |
+| `src/downloadProfiles.js` | Profile metadata, `getOutputProfile`, `describeProgress`, `buildFileName` |
+| `src/analytics.js` | `trackDownloadEvent` pushes to `window.dataLayer` (no-op unless a provider is added) |
+
 ## Download Flow (Async with Progress Tracking)
 
-The frontend uses a **polling-based progress tracking** system:
+1. **POST** `/api/v1/yt/videos-uploaded/` with `{ url, output_profile }` → Returns `202` with `CodecUrls.id`
+2. **Poll** `GET /api/v1/yt/videos/<codecurl_id>` every ~1.5s (+ jitter) for status and progress (0-100%). `status`: `1` success, `2` running, `3` error.
+3. When `status=1`, find the `VideosUploaded` record by matching `codecurl` via `GET /api/v1/yt/videos-uploaded/` (retries once after 1.5s)
+4. User explicitly saves via `GET /api/v1/yt/videos-uploaded/<videouploaded_id>` (blob with progress); preview streams the same URL in `<video>` or `<audio>` based on the profile
 
-1. **POST** `/api/v1/yt/videos-uploaded/` → Returns `202` with `CodecUrls.id`
-2. **Poll** `GET /api/v1/yt/videos/<codecurl_id>` every 2 seconds for status and progress (0-100%)
-3. When `status=1` (SUCCESS), find `VideosUploaded` record by filtering `GET /api/v1/yt/videos-uploaded/`
-4. **Download** file via `GET /api/v1/yt/videos-uploaded/<videouploaded_id>` with progress tracking
+### Polling Behavior
 
-### Timeout Configuration
+- Base interval 1.5s with up to 300ms jitter; reset after every successful poll
+- Transient failures (timeout, network, 429, 5xx) do **not** end the job — they set a notice and retry
+- 429 doubles the interval up to a 10s cap
+- Total budget is **15 minutes**, after which the UI shows a "taking too long" state with retry
+- `AbortController` cancels in-flight requests on cancel/unmount; timers are cleared on unmount (Strict Mode safe)
+
+### Timeout Configuration (`src/api/downloads.js`)
 
 | Operation | Timeout | Behavior |
 |-----------|---------|----------|
-| POST videos-uploaded/ | 60s | Show error popover |
-| GET videos/<id> (poll) | 10s per request | Skip to next poll |
-| Total polling duration | 5 minutes | Show timeout error |
-| GET videos-uploaded/ (list) | 10s | Show error |
-| GET videos-uploaded/<id> (blob) | 5 minutes | Show timeout error |
+| POST videos-uploaded/ | 60s | Error card / cooldown on 429 |
+| GET videos/<id> (poll) | 10s per request | Retry with backoff |
+| Total polling duration | 15 minutes | "Taking too long" + retry |
+| GET videos-uploaded/ (list) | 10s | Retry/fail |
+| GET videos-uploaded/<id> (blob) | 5 minutes | Error shown in result card |
 
 ### State Persistence
 
-- Pending downloads are saved to `localStorage` with key `youtube_dl_pending_download`
-- Automatically resumes polling on page refresh if within 5-minute timeout
-- Cleared on success, error, or cancel
+- Pending jobs use a versioned key `youtube_dl_pending_download:v2` storing `{ version, jobId, profile, sourceUrl, startedAt }`
+- Automatically resumes polling on refresh while within the 15-minute budget
+- Legacy unversioned key `youtube_dl_pending_download` is removed on mount
+- Cleared on success, terminal error, timeout, or cancel; safely wrapped in try/catch
 
-### Key Functions in App.js
+### Analytics Events
 
-- `pollProgress(codecUrlId, startTime)` - Polls backend for download progress
-- `fetchCompletedVideo(codecUrlId)` - Finds VideosUploaded record after download completes
-- `downloadVideoFile(videoUploadedId)` - Downloads file with progress tracking
-- `handleCancel()` - Stops polling and clears state
+`download_submitted { profile }`, `download_finished { profile, seconds }`, `download_failed { profile, status }`, plus `download_cancelled` and `download_timed_out`.
 
 ## Quirks
 
-- The default `App.test.js` checks for "learn react" text that no longer exists in the current `App.js` — test will fail. Update or remove if changing tests.
+- `src/App.test.js` now covers the real UI (default profile, validation, video/audio previews, 400/429 handling). Do not restore the old CRA boilerplate test.
+- **Jest + Axios**: Axios 1.4 ships an ESM `main` that Jest 27 cannot parse. `package.json` maps `^axios$` to `node_modules/axios/dist/node/axios.cjs` via the CRA-supported `jest.moduleNameMapper`. Keep that mapping when touching test config.
 - No custom ESLint/Prettier config beyond CRA defaults. No CI pipeline.
 - Docker build uses `nginxinc/nginx-unprivileged:1.27-alpine` (see `docker/nginx/default.conf`). `REACT_APP_API_URL` is passed as a build arg — update your `.env` before building.
-- **Important**: The frontend expects the backend to provide real-time progress via `GET /api/v1/yt/videos/<id>` endpoint (status and progress fields).
+- **Important**: The frontend expects the backend to provide real-time progress via `GET /api/v1/yt/videos/<id>` (status and progress fields) and the upload lookup via `GET /api/v1/yt/videos-uploaded/` matching `codecurl`.
