@@ -396,32 +396,32 @@ function App() {
                   </Button>
                 </div>
 
-                {isMobile ? (
-                  <div className="share-section">
-                    <div
-                      className="share-toggle"
-                      role="tablist"
-                      aria-label="Share mode"
+                <div className="share-section">
+                  <div
+                    className="share-toggle"
+                    role="tablist"
+                    aria-label="Share mode"
+                  >
+                    <button
+                      role="tab"
+                      type="button"
+                      className={`share-toggle-button${shareMode === 'link' ? ' is-active' : ''}`}
+                      aria-selected={shareMode === 'link'}
+                      onClick={() => setShareMode('link')}
                     >
-                      <button
-                        role="tab"
-                        type="button"
-                        className={`share-toggle-button${shareMode === 'link' ? ' is-active' : ''}`}
-                        aria-selected={shareMode === 'link'}
-                        onClick={() => setShareMode('link')}
-                      >
-                        Share link
-                      </button>
-                      <button
-                        role="tab"
-                        type="button"
-                        className={`share-toggle-button${shareMode === 'file' ? ' is-active' : ''}`}
-                        aria-selected={shareMode === 'file'}
-                        onClick={() => setShareMode('file')}
-                      >
-                        Share file
-                      </button>
-                    </div>
+                      Share link
+                    </button>
+                    <button
+                      role="tab"
+                      type="button"
+                      className={`share-toggle-button${shareMode === 'file' ? ' is-active' : ''}`}
+                      aria-selected={shareMode === 'file'}
+                      onClick={() => setShareMode('file')}
+                    >
+                      Share file
+                    </button>
+                  </div>
+                  {isMobile ? (
                     <Button
                       className="share-native-button"
                       variant="outlined"
@@ -430,33 +430,7 @@ function App() {
                     >
                       Share
                     </Button>
-                  </div>
-                ) : (
-                  <div className="share-section">
-                    <div
-                      className="share-toggle"
-                      role="tablist"
-                      aria-label="Share mode"
-                    >
-                      <button
-                        role="tab"
-                        type="button"
-                        className={`share-toggle-button${shareMode === 'link' ? ' is-active' : ''}`}
-                        aria-selected={shareMode === 'link'}
-                        onClick={() => setShareMode('link')}
-                      >
-                        Share link
-                      </button>
-                      <button
-                        role="tab"
-                        type="button"
-                        className={`share-toggle-button${shareMode === 'file' ? ' is-active' : ''}`}
-                        aria-selected={shareMode === 'file'}
-                        onClick={() => setShareMode('file')}
-                      >
-                        Share file
-                      </button>
-                    </div>
+                  ) : (
                     <div className="share-buttons">
                       <Tooltip title={fileShareDisabledOnDesktop ? 'File sharing not supported in this browser' : ''}>
                         <span>
@@ -519,8 +493,8 @@ function App() {
                         <CopyIcon />
                       </button>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 <Snackbar
                   open={snackbarOpen}
