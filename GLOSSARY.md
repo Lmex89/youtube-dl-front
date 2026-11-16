@@ -27,3 +27,7 @@ _Avoid_: Task, operation, process, transfer
 **Platform**:
 A supported video hosting service from which content can be downloaded. Currently YouTube, Facebook, and TikTok.
 _Avoid_: Site, service, source, provider
+
+**Share Target**:
+A destination the user shares to after a download: WhatsApp, Facebook, X, Telegram, copy-to-clipboard, or the device's native share sheet.
+_Avoid_: Platform, network, channel

@@ -13,13 +13,12 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { OUTPUT_PROFILES, getOutputProfile, describeProgress } from './downloadProfiles';
+import { OUTPUT_PROFILES, getOutputProfile, describeProgress, buildFileName } from './downloadProfiles';
 import { buildDownloadUrl, downloadFile } from './api/downloads';
 import { PHASES, useDownloadJob } from './hooks/useDownloadJob';
 import { trackDownloadEvent } from './analytics';
 import { buildShareText, buildShareUrl } from './utils/share';
 import { WhatsAppIcon, FacebookIcon, XIcon, TelegramIcon, CopyIcon } from './components/icons/SocialShareIcons';
-import { buildFileName } from './downloadProfiles';
 
 const darkTheme = createTheme({
   palette: { mode: 'dark' },
@@ -51,6 +50,13 @@ export function validateAndCleanUrl(inputUrl) {
   return null;
 }
 
+const SHARE_TARGETS = [
+  { id: 'whatsapp', label: 'WhatsApp', className: 'share-button-whatsapp', Icon: WhatsAppIcon },
+  { id: 'facebook', label: 'Facebook', className: 'share-button-facebook', Icon: FacebookIcon },
+  { id: 'x', label: 'X', className: 'share-button-x', Icon: XIcon },
+  { id: 'telegram', label: 'Telegram', className: 'share-button-telegram', Icon: TelegramIcon },
+];
+
 function App() {
   const [videoUrl, setVideoUrl] = useState('');
   const [urlError, setUrlError] = useState(null);
@@ -58,12 +64,9 @@ function App() {
   const [now, setNow] = useState(() => Date.now());
   const [shareMode, setShareMode] = useState('link');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('Link copied to clipboard');
 
   const isMobile = useMemo(() => typeof navigator !== 'undefined' && 'share' in navigator, []);
-  const canShareFiles = useMemo(
-    () => typeof navigator !== 'undefined' && typeof navigator.canShare === 'function',
-    []
-  );
 
   const {
     phase,
@@ -109,6 +112,8 @@ function App() {
   const showResult =
     Boolean(upload) && (phase === PHASES.READY || phase === PHASES.DOWNLOADING || phase === PHASES.SAVED);
 
+  const showShare = Boolean(upload) && (phase === PHASES.READY || phase === PHASES.SAVED);
+
   const phaseLabel =
     phase === PHASES.SUBMITTING
       ? 'Submitting'
@@ -144,11 +149,16 @@ function App() {
   const isFileShareMode = shareMode === 'file';
   const fileShareDisabledOnDesktop = !isMobile && isFileShareMode;
 
+  const showSnackbar = useCallback((message) => {
+    setSnackbarMessage(message);
+    setSnackbarOpen(true);
+  }, []);
+
   const handlePlatformShare = useCallback(
-    (platform) => {
+    (shareTarget) => {
       if (!shareUrl) return;
-      trackDownloadEvent('share_initiated', { platform, profile: activeProfile });
-      const url = buildShareUrl(platform, shareUrl, shareText);
+      trackDownloadEvent('share_initiated', { shareTarget, profile: activeProfile });
+      const url = buildShareUrl(shareTarget, shareUrl, shareText);
       window.open(url, '_blank', 'noopener,noreferrer');
     },
     [shareUrl, shareText, activeProfile]
@@ -156,36 +166,38 @@ function App() {
 
   const handleCopyLink = useCallback(async () => {
     if (!shareUrl) return;
-    trackDownloadEvent('share_initiated', { platform: 'copy', profile: activeProfile });
+    trackDownloadEvent('share_initiated', { shareTarget: 'copy', profile: activeProfile });
     try {
       await navigator.clipboard.writeText(shareUrl);
-      setSnackbarOpen(true);
+      showSnackbar('Link copied to clipboard');
     } catch (err) {
-      // Fallback: open in new tab
-      window.open(shareUrl, '_blank', 'noopener,noreferrer');
+      showSnackbar('Could not copy the link. Please try again.');
     }
-  }, [shareUrl, activeProfile]);
+  }, [shareUrl, activeProfile, showSnackbar]);
 
   const handleNativeShare = useCallback(async () => {
     if (!shareUrl || !isMobile) return;
-    trackDownloadEvent('share_initiated', { platform: 'native', profile: activeProfile });
+    trackDownloadEvent('share_initiated', { shareTarget: 'native', profile: activeProfile });
 
-    if (isFileShareMode && upload && canShareFiles) {
+    if (isFileShareMode && upload) {
       try {
-        const downloadUrl = buildDownloadUrl(upload.id);
-        const response = await fetch(downloadUrl);
-        const blob = await response.blob();
+        const response = await downloadFile(upload.id);
         const fileName = buildFileName(upload.id, activeProfile);
-        const file = new File([blob], fileName, { type: upload.mime_type || activeProfileConfig?.mimeType });
-
+        const file = new File([response.data], fileName, {
+          type: upload.mime_type || activeProfileConfig?.mimeType,
+        });
         const shareData = { files: [file], title: shareTitle };
-        if (navigator.canShare(shareData)) {
+
+        if (typeof navigator.canShare === 'function' && navigator.canShare(shareData)) {
           await navigator.share(shareData);
-          return;
+        } else {
+          showSnackbar('File sharing not supported in this browser');
         }
+        return;
       } catch (err) {
         if (err?.name === 'AbortError') return;
-        // Fall through to link share
+        showSnackbar('Could not share the file. Please try again.');
+        return;
       }
     }
 
@@ -193,9 +205,9 @@ function App() {
       await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
     } catch (err) {
       if (err?.name === 'AbortError') return;
-      // Silently ignore other share errors
+      showSnackbar('Could not share. Please try again.');
     }
-  }, [shareUrl, isMobile, isFileShareMode, upload, canShareFiles, shareTitle, shareText, activeProfile, activeProfileConfig]);
+  }, [shareUrl, isMobile, isFileShareMode, upload, shareTitle, shareText, activeProfile, activeProfileConfig, showSnackbar]);
 
   const handleSnackbarClose = useCallback(() => setSnackbarOpen(false), []);
 
@@ -396,111 +408,80 @@ function App() {
                   </Button>
                 </div>
 
-                <div className="share-section">
-                  <div
-                    className="share-toggle"
-                    role="tablist"
-                    aria-label="Share mode"
-                  >
-                    <button
-                      role="tab"
-                      type="button"
-                      className={`share-toggle-button${shareMode === 'link' ? ' is-active' : ''}`}
-                      aria-selected={shareMode === 'link'}
-                      onClick={() => setShareMode('link')}
+                {showShare ? (
+                  <div className="share-section">
+                    <div
+                      className="share-toggle"
+                      role="tablist"
+                      aria-label="Share mode"
                     >
-                      Share link
-                    </button>
-                    <button
-                      role="tab"
-                      type="button"
-                      className={`share-toggle-button${shareMode === 'file' ? ' is-active' : ''}`}
-                      aria-selected={shareMode === 'file'}
-                      onClick={() => setShareMode('file')}
-                    >
-                      Share file
-                    </button>
-                  </div>
-                  {isMobile ? (
-                    <Button
-                      className="share-native-button"
-                      variant="outlined"
-                      startIcon={<ShareIcon />}
-                      onClick={handleNativeShare}
-                    >
-                      Share
-                    </Button>
-                  ) : (
-                    <div className="share-buttons">
-                      <Tooltip title={fileShareDisabledOnDesktop ? 'File sharing not supported in this browser' : ''}>
-                        <span>
-                          <button
-                            className="share-button share-button-whatsapp"
-                            type="button"
-                            aria-label="Share on WhatsApp"
-                            disabled={fileShareDisabledOnDesktop}
-                            onClick={() => handlePlatformShare('whatsapp')}
-                          >
-                            <WhatsAppIcon />
-                          </button>
-                        </span>
-                      </Tooltip>
-                      <Tooltip title={fileShareDisabledOnDesktop ? 'File sharing not supported in this browser' : ''}>
-                        <span>
-                          <button
-                            className="share-button share-button-facebook"
-                            type="button"
-                            aria-label="Share on Facebook"
-                            disabled={fileShareDisabledOnDesktop}
-                            onClick={() => handlePlatformShare('facebook')}
-                          >
-                            <FacebookIcon />
-                          </button>
-                        </span>
-                      </Tooltip>
-                      <Tooltip title={fileShareDisabledOnDesktop ? 'File sharing not supported in this browser' : ''}>
-                        <span>
-                          <button
-                            className="share-button share-button-x"
-                            type="button"
-                            aria-label="Share on X"
-                            disabled={fileShareDisabledOnDesktop}
-                            onClick={() => handlePlatformShare('x')}
-                          >
-                            <XIcon />
-                          </button>
-                        </span>
-                      </Tooltip>
-                      <Tooltip title={fileShareDisabledOnDesktop ? 'File sharing not supported in this browser' : ''}>
-                        <span>
-                          <button
-                            className="share-button share-button-telegram"
-                            type="button"
-                            aria-label="Share on Telegram"
-                            disabled={fileShareDisabledOnDesktop}
-                            onClick={() => handlePlatformShare('telegram')}
-                          >
-                            <TelegramIcon />
-                          </button>
-                        </span>
-                      </Tooltip>
                       <button
-                        className="share-button share-button-copy"
+                        role="tab"
                         type="button"
-                        aria-label="Copy link"
-                        onClick={handleCopyLink}
+                        className={`share-toggle-button${shareMode === 'link' ? ' is-active' : ''}`}
+                        aria-selected={shareMode === 'link'}
+                        onClick={() => setShareMode('link')}
                       >
-                        <CopyIcon />
+                        Share link
+                      </button>
+                      <button
+                        role="tab"
+                        type="button"
+                        className={`share-toggle-button${shareMode === 'file' ? ' is-active' : ''}`}
+                        aria-selected={shareMode === 'file'}
+                        onClick={() => setShareMode('file')}
+                      >
+                        Share file
                       </button>
                     </div>
-                  )}
-                </div>
+                    {isMobile ? (
+                      <Button
+                        className="share-native-button"
+                        variant="outlined"
+                        startIcon={<ShareIcon />}
+                        onClick={handleNativeShare}
+                      >
+                        Share
+                      </Button>
+                    ) : (
+                      <div className="share-buttons">
+                        {SHARE_TARGETS.map(({ id, label, className, Icon }) => (
+                          <Tooltip
+                            key={id}
+                            title={fileShareDisabledOnDesktop ? 'File sharing not supported in this browser' : ''}
+                          >
+                            <span>
+                              <button
+                                className={`share-button ${className}`}
+                                type="button"
+                                aria-label={`Share on ${label}`}
+                                disabled={fileShareDisabledOnDesktop}
+                                onClick={() => handlePlatformShare(id)}
+                              >
+                                <Icon />
+                              </button>
+                            </span>
+                          </Tooltip>
+                        ))}
+                        <button
+                          className="share-button share-button-copy"
+                          type="button"
+                          aria-label="Copy link"
+                          disabled={fileShareDisabledOnDesktop}
+                          onClick={handleCopyLink}
+                        >
+                          <CopyIcon />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
 
                 <Snackbar
                   open={snackbarOpen}
                   autoHideDuration={2000}
                   onClose={handleSnackbarClose}
-                  message="Link copied to clipboard"
+                  message={snackbarMessage}
                   role="alert"
                   aria-live="polite"
                 />
