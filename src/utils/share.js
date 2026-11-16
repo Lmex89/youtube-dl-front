@@ -6,12 +6,13 @@ export function buildShareText(mediaType, title, url) {
   return `Check out ${safeTitle} ${url}`;
 }
 
-export function buildShareUrl(platform, url, text) {
+export function buildShareUrl(shareTarget, url, text) {
   const encodedUrl = encodeURIComponent(url);
   const encodedText = encodeURIComponent(text);
 
-  switch (platform) {
+  switch (shareTarget) {
     case 'whatsapp':
+      // buildShareText already embeds the url, so text alone is the full message.
       return `https://wa.me/?text=${encodedText}`;
     case 'facebook':
       return `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;

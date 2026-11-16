@@ -432,7 +432,7 @@ The frontend communicates with a backend API to process YouTube downloads using 
 - `download_finished { profile, seconds }`
 - `download_failed { profile, status }`
 - `download_cancelled`, `download_timed_out`
-- `share_initiated { platform, profile }` — platform is `'whatsapp'`, `'facebook'`, `'x'`, `'telegram'`, `'copy'`, or `'native'`
+- `share_initiated { shareTarget, profile }` — shareTarget is `'whatsapp'`, `'facebook'`, `'x'`, `'telegram'`, `'copy'`, or `'native'`
 
 ### Error Handling
 
@@ -500,7 +500,7 @@ youtube-dl-front/
 | `src/hooks/useDownloadJob.js` | Download state machine: submit → poll → resolve → preview/save, cancel/retry, 15-minute budget, v2 persistence |
 | `src/downloadProfiles.js` | Profile labels, extensions, MIME types, preview type, progress phrasing, file names |
 | `src/analytics.js` | `trackDownloadEvent` pushes to `window.dataLayer` |
-| `src/utils/share.js` | `buildShareText` (video/audio prefix) and `buildShareUrl` (per-platform share URLs) |
+| `src/utils/share.js` | `buildShareText` (video/audio prefix) and `buildShareUrl` (per-share-target share URLs) |
 | `src/components/icons/SocialShareIcons.jsx` | 5 SVG icon components: `WhatsAppIcon`, `FacebookIcon`, `XIcon`, `TelegramIcon`, `CopyIcon` |
 | `src/config.js` | Environment variable handling with fallbacks |
 | `src/App.css` | Custom CSS styles |

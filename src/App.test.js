@@ -304,7 +304,7 @@ describe('Share section', () => {
 
     expect(window.dataLayer).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ event: 'share_initiated', platform: 'facebook', profile: 'standard_video' }),
+        expect.objectContaining({ event: 'share_initiated', shareTarget: 'facebook', profile: 'standard_video' }),
       ])
     );
 
@@ -325,7 +325,7 @@ describe('Share section', () => {
     await waitFor(() => {
       expect(window.dataLayer).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ event: 'share_initiated', platform: 'copy', profile: 'standard_video' }),
+          expect.objectContaining({ event: 'share_initiated', shareTarget: 'copy', profile: 'standard_video' }),
         ])
       );
     });
