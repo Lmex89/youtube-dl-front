@@ -77,3 +77,17 @@
 - No custom ESLint/Prettier config beyond CRA defaults. No CI pipeline.
 - Docker build uses `nginxinc/nginx-unprivileged:1.27-alpine` (see `docker/nginx/default.conf`). `REACT_APP_API_URL` is passed as a build arg — update your `.env` before building.
 - **Important**: The frontend expects the backend to provide real-time progress via `GET /api/v1/yt/videos/<id>` (status and progress fields) and the upload lookup via `GET /api/v1/yt/videos-uploaded/` matching `codecurl`.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues (uses the `gh` CLI). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical roles with default label strings. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout: one `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
