@@ -33,6 +33,8 @@
 | `src/hooks/useDownloadJob.js` | Download state machine (`PHASES`), polling with jitter/backoff, 15-minute budget, cancel/retry/save, v2 localStorage resume |
 | `src/downloadProfiles.js` | Profile metadata, `getOutputProfile`, `describeProgress`, `buildFileName` |
 | `src/analytics.js` | `trackDownloadEvent` pushes to `window.dataLayer` (no-op unless a provider is added) |
+| `src/utils/share.js` | `buildShareText` (video/audio prefix) and `buildShareUrl` (per-platform share URLs) |
+| `src/components/icons/SocialShareIcons.jsx` | 5 SVG icon components: `WhatsAppIcon`, `FacebookIcon`, `XIcon`, `TelegramIcon`, `CopyIcon` |
 
 ## Download Flow (Async with Progress Tracking)
 
@@ -68,7 +70,7 @@
 
 ### Analytics Events
 
-`download_submitted { profile }`, `download_finished { profile, seconds }`, `download_failed { profile, status }`, plus `download_cancelled` and `download_timed_out`.
+`download_submitted { profile }`, `download_finished { profile, seconds }`, `download_failed { profile, status }`, plus `download_cancelled` and `download_timed_out`. Share events: `share_initiated { platform, profile }` where `platform` is one of `'whatsapp'`, `'facebook'`, `'x'`, `'telegram'`, `'copy'`, `'native'`.
 
 ## Quirks
 

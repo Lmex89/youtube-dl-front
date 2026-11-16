@@ -43,6 +43,7 @@ A modern, responsive web interface for downloading YouTube videos. Built with **
 - **Mobile-First Dark Theme**: Cinematic dark radial UI with Google Fonts (Outfit + DM Sans), glassmorphism panels, and GitHub footer links
 - **Responsive Design**: Mobile-first CSS with breakpoints at 600px and 1024px, stacked buttons on mobile with 48px touch targets
 - **Accessible UI**: Inline validation with `role="alert"`, radiogroup profile cards, live progress announcements, visible focus, and reduced-motion support
+- **Social Sharing**: Share downloaded content to WhatsApp, Facebook, X, and Telegram, or copy the source URL. Mobile browsers with Web Share API get a native share sheet; desktop browsers get inline platform buttons with brand colors. Toggle between sharing the link or the file (with file support detection). Analytics tracking for all share events.
 - **Docker Support**: Multi-stage Dockerfile with health checks and nginx serving
 
 ### Output Profiles
@@ -431,6 +432,7 @@ The frontend communicates with a backend API to process YouTube downloads using 
 - `download_finished { profile, seconds }`
 - `download_failed { profile, status }`
 - `download_cancelled`, `download_timed_out`
+- `share_initiated { platform, profile }` — platform is `'whatsapp'`, `'facebook'`, `'x'`, `'telegram'`, `'copy'`, or `'native'`
 
 ### Error Handling
 
@@ -466,6 +468,11 @@ youtube-dl-front/
 │   ├── downloadProfiles.js   # Output profile metadata + helpers
 │   ├── downloadProfiles.test.js
 │   ├── analytics.js          # dataLayer analytics adapter
+│   ├── utils/
+│   │   └── share.js          # buildShareText and buildShareUrl helpers
+│   ├── components/
+│   │   └── icons/
+│   │       └── SocialShareIcons.jsx  # WhatsApp, Facebook, X, Telegram, Copy SVG icons
 │   ├── index.js              # Application entry point
 │   ├── index.css             # Global styles (focus, reduced motion)
 │   ├── config.js             # Configuration management
@@ -493,6 +500,8 @@ youtube-dl-front/
 | `src/hooks/useDownloadJob.js` | Download state machine: submit → poll → resolve → preview/save, cancel/retry, 15-minute budget, v2 persistence |
 | `src/downloadProfiles.js` | Profile labels, extensions, MIME types, preview type, progress phrasing, file names |
 | `src/analytics.js` | `trackDownloadEvent` pushes to `window.dataLayer` |
+| `src/utils/share.js` | `buildShareText` (video/audio prefix) and `buildShareUrl` (per-platform share URLs) |
+| `src/components/icons/SocialShareIcons.jsx` | 5 SVG icon components: `WhatsAppIcon`, `FacebookIcon`, `XIcon`, `TelegramIcon`, `CopyIcon` |
 | `src/config.js` | Environment variable handling with fallbacks |
 | `src/App.css` | Custom CSS styles |
 | `src/reportWebVitals.js` | Web Vitals performance tracking |
